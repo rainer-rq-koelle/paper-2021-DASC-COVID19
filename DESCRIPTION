@@ -1,0 +1,12 @@
+Package: paper2021DASCcovid
+Title: put title here
+Version: 0.1
+Authors@R: c(
+  person("Rainer", "Koelle", email = "rainer.koelle@eurocontrol.int", role = "cre","aut"),
+  person("Fabio", "Caneiro Barbarosa", email = "xxx", role = "aut"))
+Description: Paper studying the impact of and response to COVID19 on air transportation
+  based on open data. COVID19 is modelled as a disruption and the impact is described
+  through a set of measures.
+Depends: R (>= 3.1.0)
+License: CC0 1.0 Universal
+  LazyData: true
