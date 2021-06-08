@@ -313,22 +313,11 @@
 
 
 \usepackage{longtable,booktabs}
-\usepackage{graphicx}
-% We will generate all images so they have a width \maxwidth. This means
-% that they will get their normal width if they fit onto the page, but
-% are scaled down if they would overflow the margins.
-\makeatletter
-\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth
-\else\Gin@nat@width\fi}
-\makeatother
-\let\Oldincludegraphics\includegraphics
-\renewcommand{\includegraphics}[1]{\Oldincludegraphics[width=\maxwidth]{#1}}
 
 \usepackage[unicode=true]{hyperref}
 
 \hypersetup{
-            pdftitle={Untitled},
-            pdfauthor={PRU},
+            pdftitle={Assessing the Global COVID19 Impact on Air Transport with Open Data},
             pdfborder={0 0 0},
             breaklinks=true}
 \urlstyle{same}  % don't use monospace font for urls
@@ -379,6 +368,31 @@
 \newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
 
 % Pandoc citation processing
+\newlength{\csllabelwidth}
+\setlength{\csllabelwidth}{3em}
+\newlength{\cslhangindent}
+\setlength{\cslhangindent}{1.5em}
+% for Pandoc 2.8 to 2.10.1
+\newenvironment{cslreferences}%
+  {}%
+  {\par}
+% For Pandoc 2.11+
+\newenvironment{CSLReferences}[3] % #1 hanging-ident, #2 entry spacing
+ {% don't indent paragraphs
+  \setlength{\parindent}{0pt}
+  % turn on hanging indent if param 1 is 1
+  \ifodd #1 \everypar{\setlength{\hangindent}{\cslhangindent}}\ignorespaces\fi
+  % set entry spacing
+  \ifnum #2 > 0
+  \setlength{\parskip}{#2\baselineskip}
+  \fi
+ }%
+ {}
+\usepackage{calc} % for calculating minipage widths
+\newcommand{\CSLBlock}[1]{#1\hfill\break}
+\newcommand{\CSLLeftMargin}[1]{\parbox[t]{\csllabelwidth}{#1}}
+\newcommand{\CSLRightInline}[1]{\parbox[t]{\linewidth - \csllabelwidth}{#1}}
+\newcommand{\CSLIndent}[1]{\hspace{\cslhangindent}#1}
 
 % Pandoc header
 
@@ -398,13 +412,57 @@
 % not capitalized unless they are the first or last word of the title.
 % Linebreaks \\ can be used within to get better formatting as desired.
 % Do not put math or special symbols in the title.
-\title{Untitled}
+\title{Assessing the Global COVID19 Impact on Air Transport with Open Data}
 
 % author names and affiliations
 % use a multiple column layout for up to three different
 % affiliations
 
 \author{
+
+%% ---- classic IEEETrans wide authors' list ----------------
+ % -- end affiliation.wide
+%% ----------------------------------------------------------
+
+
+
+%% ---- classic IEEETrans one column per institution --------
+ %% -- beg if/affiliation.institution-columnar
+\IEEEauthorblockN{
+  %% -- beg for/affiliation.institution.author
+Rainer Koelle %% -- end for/affiliation.institution.author
+}
+\IEEEauthorblockA{Performance Review Unit\\
+EUROCONTROL\\
+Brussels (Belgium)
+  %% -- beg for/affiliation.institution.author
+\\rainer.koelle@eurocontrol.int
+ %% -- end for/affiliation.institution.author
+}
+\and
+\IEEEauthorblockN{
+  %% -- beg for/affiliation.institution.author
+Fabio Coneiro Barbarosa %% -- end for/affiliation.institution.author
+}
+\IEEEauthorblockA{tbd \ldots{}\\
+DECEA\\
+tbd location - suggest Rio (Brazil)
+  %% -- beg for/affiliation.institution.author
+\\second\_author@somedomain.com
+ %% -- end for/affiliation.institution.author
+}
+ %% -- end for/affiliation.institution
+ %% -- end if/affiliation.institution-columnar
+%% ----------------------------------------------------------
+
+
+
+
+
+%% ---- one column per author, classic/default IEEETrans ----
+ %% -- end if/affiliation.institution-columnar
+%% ----------------------------------------------------------
+
 }
 
 % conference papers do not typically use \thanks and this command
@@ -444,7 +502,7 @@
 % As a general rule, do not put math, special symbols or citations
 % in the abstract
 \begin{abstract}
-Our great abstract
+This paper approaches the impact of the pandemic as a massive service disruption of the pre-pandemic global connectivity and regional air transport networks. In particular, the project aims to provide data analytical evidence for policy success and transformation of the air transportation system. As an aspirational goal, the industry aims to recover in a ``greener'' manner. The project builds on openly available data sets. The paper will be produced in a reproducible manner making the data, code, and its processing available to interested reseachers and practitioners. The open assessment will provide policy makers with a tool to assess the reaction to local or regional measures.
 \end{abstract}
 
 % keywords
@@ -469,37 +527,111 @@ Our great abstract
 \IEEEpeerreviewmaketitle
 
 
-\hypertarget{r-markdown}{%
-\subsection{R Markdown}\label{r-markdown}}
+\hypertarget{introduction}{%
+\section{Introduction}\label{introduction}}
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see \url{http://rmarkdown.rstudio.com}.
+This paper is heavily informed by the work of (Strohmeier et al. 2021).
 
-When you click the \textbf{Knit} button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+For many years, many concerns of the global air traffic management community has been directed to the evident problem of imbalances between capacity and demand. The pressing, increasing demand for air transport registered in the last decade not only has already produced challenging delay management practices, but also fostered projections of even worse scenarios. EUROCONTROL (\_\_\_\_), for example, argued that delays in Europe could reach up to 20 minutes per flight in 2040, in stark contrast to the 12 minutes per flight, as registered in 2016.
+
+In the above scenario, many disturbances on the air navigation system could represent a real threat to multiple stakeholders. Events such as extreme bad weather, unexpected interruptions of air navigation services, changes in regulatory framework and others: all of those inputs could promote even more delay and its propagation effects. That is why the concept of resilience in ATM system became similarly relevant in the agenda during the same period. Arguably, a resilient ATM system could mitigate the negative effects of excessive demands on insufficient capacity and their respective constraints and bottlenecks.
+
+However, the recent COVID-19 crisis posed a completely different, unexpected, and inverted challenge. Demand for air transport dropped as low as 90\% of the previous ``normal'' in many places. Where the lack of capacity was previously the issue, now the lack of demand threatened the ATM system stability. In the financial perspective, airlines and airports had to deal with an unprecedented decrease in incomes. As a result, air navigation providers collected less fees for their services, due to significantly fewer flights. In the operational perspective, pilots and air traffic controllers practiced less. The problems and obstacles developed into many other dimensions.
+
+Hence, the current scenario is a proper moment to further investigate the concept of resilience.
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\FunctionTok{summary}\NormalTok{(cars)}
+\CommentTok{\# Problem Statement }
+
+\CommentTok{\# The problem is that, currently, the concept}
+\CommentTok{\# of resilience is mostly directed to recovery}
+\CommentTok{\# against delay propagation after negative }
+\CommentTok{\# disturbances. However, the current scenario}
+\CommentTok{\# poses an inverted challenge, of very low }
+\CommentTok{\# delays due to low demand against surplus }
+\CommentTok{\# capacity. Therefore, there is room for }
+\CommentTok{\# enlarging the comprehension of the concept}
+\CommentTok{\# of resilience in ATM systems. }
+
+\CommentTok{\# \# Purpose Statement}
+\CommentTok{\# }
+\CommentTok{\# ???The purpose of this research is to }
+\CommentTok{\# investigate additional dimensions in which }
+\CommentTok{\# resilience could be measured, in addition}
+\CommentTok{\# to the current framework of delay analysis.}
+\CommentTok{\# }
+\CommentTok{\# Research Question}
+\CommentTok{\# }
+\CommentTok{\# ???How can we enlarge the concept of }
+\CommentTok{\# resilience, so that it is applicable to}
+\CommentTok{\# scenarios of low traffic? }
 \end{Highlighting}
 \end{Shaded}
 
-\begin{verbatim}
-##      speed           dist
-##  Min.   : 4.0   Min.   :  2.00
-##  1st Qu.:12.0   1st Qu.: 26.00
-##  Median :15.0   Median : 36.00
-##  Mean   :15.4   Mean   : 42.98
-##  3rd Qu.:19.0   3rd Qu.: 56.00
-##  Max.   :25.0   Max.   :120.00
-\end{verbatim}
+The contribution of this paper are
 
-\hypertarget{including-plots}{%
-\subsection{Including Plots}\label{including-plots}}
+\begin{itemize}
+\item
+  conceptualisation of the COVID-19 impact on air transportation as a resilience problem;
+\item
+  assessing the impact on the basis of open data
+\item
+  identification of patterns and/or measures to describe and quantify/evaluate the level of recovery (or disruption)
+\end{itemize}
 
-You can also embed plots, for example:
+\hypertarget{background}{%
+\section{Background}\label{background}}
 
-\includegraphics{paper_files/figure-latex/pressure-1.pdf}
+\hypertarget{covid-19-air-transportation}{%
+\subsection{COVID-19 \& Air Transportation}\label{covid-19-air-transportation}}
 
-Note that the \texttt{echo\ =\ FALSE} parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+\hypertarget{resilience}{%
+\subsection{Resilience}\label{resilience}}
+
+EUROCONTROL (2009): first definition of resilience in ATM context -- ``Resilience is the intrinsic ability of a system to adjust its functioning prior to, during, or following changes and disturbances, so that it can sustain required operations under both expected and unexpected conditions.''
+
+Gluchshenko (2012):
+
+Definitions for Resilience, robustness, disturbance, stress, and perturbation Proposition for a framework of different levels of stress/perturbations Proposition of metrics for resilience (both quantitative and qualitative)
+
+Gluchshenko (2013): repeats the previous ideas and adds a performance-based approach as well as an algorithm to investigate resilience
+
+Project Resilience 2050 (Jun/2012 + 43 months) -- includes the previous definitions and other technical tasks. However, it evolves the way to measure resilience. Now, not only the time of deviation and time of recovery is considered. The project measures it as the relative difference of rate of delays correlation, or R = (ax1 -- dx1)/dx1 -- it has no unit, it's the difference between two pearson correlations.
+
+Koelle (2015): proposes to address resilience as a situation management and state-oriented problem. Through two case studies, argued that ``there is a lack of fit of the current operational ANS performance indicators to address impact of disruptions as they are primarily based on actual timestamps or transition times.''
+
+\hypertarget{if-we-need-to-fill-space-crowd-sourced-data-collection}{%
+\subsection{\textless if we need to fill space\textgreater{} Crowd-Sourced Data Collection}\label{if-we-need-to-fill-space-crowd-sourced-data-collection}}
+
+\hypertarget{methodmaterials}{%
+\section{Method/Materials}\label{methodmaterials}}
+
+\hypertarget{open-source-data}{%
+\subsection{Open-source Data}\label{open-source-data}}
+
+\hypertarget{resultsdiscussion}{%
+\section{Results/Discussion}\label{resultsdiscussion}}
+
+to be developed
+
+\hypertarget{conclusion}{%
+\section{Conclusion}\label{conclusion}}
+
+\hypertarget{acknowledgment}{%
+\section*{Acknowledgment}\label{acknowledgment}}
+\addcontentsline{toc}{section}{Acknowledgment}
+
+\hypertarget{references}{%
+\section*{References}\label{references}}
+\addcontentsline{toc}{section}{References}
+
+\hypertarget{refs}{}
+\begin{CSLReferences}{1}{0}
+\leavevmode\hypertarget{ref-strohmeier_crowdsourced_2021}{}%
+Strohmeier, Martin, Xavier Olive, Jannis Lübbe, Matthias Schäfer, and Vincent Lenders. 2021. {``Crowdsourced Air Traffic Data from {OpenSky Network} 2019-2020.''} \emph{Earth Systems Science Data} 13: 357--66. \url{https://doi.org/10.5194/essd-13-357-2021}.
+
+\end{CSLReferences}
 
 \end{document}
 

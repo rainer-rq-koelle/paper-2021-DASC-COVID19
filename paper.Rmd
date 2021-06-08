@@ -1,34 +1,137 @@
 ---
-title: "Untitled"
-author: "PRU"
+title: "Assessing the Global COVID19 Impact on Air Transport with Open Data"
 date: "`r format(Sys.Date(), '%d %B %Y')`"
 output:
   bookdown::pdf_book:
      base_format: rticles::ieee_article
+bibliography: "DASC2021.bib"
+affiliation:
+  ## use one only of the following
+  # author-columnar: true         ## one column per author
+  institution-columnar: true  ## one column per institution  
+  # wide: true          ## one column wide author/affiliation fields
+  institution:
+    - name: EUROCONTROL
+      department: Performance Review Unit
+      location: Brussels (Belgium)
+      #mark: 1
+      author:
+        - name: Rainer Koelle
+          email: rainer.koelle@eurocontrol.int
+    - name: DECEA
+      department: tbd ... 
+      location: tbd location - suggest Rio (Brazil)
+      #mark: 2
+      author:
+        - name: Fabio Coneiro Barbarosa
+          email: second_author@somedomain.com
 abstract: |
-  Our great abstract
+  This paper approaches the impact of the pandemic as a massive service disruption of the pre-pandemic global     connectivity and regional air transport networks. In particular, the project aims to provide data analytical evidence for policy success and transformation of the air transportation system. As an aspirational goal, the industry aims to recover in a “greener” manner. The project builds on openly available data sets. The paper will be produced in a reproducible manner making the data, code, and its processing available to interested reseachers and practitioners. The open assessment will provide policy makers with a tool to assess the reaction to local or regional measures. 
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+# Introduction
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+<!--| 1. Nature of the problem. -->
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+This paper is heavily informed by the work of [@strohmeier_crowdsourced_2021].
 
-```{r cars}
-summary(cars)
+For many years, many concerns of the global air traffic management community has been directed to the evident problem of imbalances between capacity and demand. The pressing, increasing demand for air transport registered in the last decade not only has already produced challenging delay management practices, but also fostered projections of even worse scenarios. EUROCONTROL (\_\_\_\_), for example, argued that delays in Europe could reach up to 20 minutes per flight in 2040, in stark contrast to the 12 minutes per flight, as registered in 2016.
+
+In the above scenario, many disturbances on the air navigation system could represent a real threat to multiple stakeholders. Events such as extreme bad weather, unexpected interruptions of air navigation services, changes in regulatory framework and others: all of those inputs could promote even more delay and its propagation effects. That is why the concept of resilience in ATM system became similarly relevant in the agenda during the same period. Arguably, a resilient ATM system could mitigate the negative effects of excessive demands on insufficient capacity and their respective constraints and bottlenecks.
+
+However, the recent COVID-19 crisis posed a completely different, unexpected, and inverted challenge. Demand for air transport dropped as low as 90% of the previous "normal" in many places. Where the lack of capacity was previously the issue, now the lack of demand threatened the ATM system stability. In the financial perspective, airlines and airports had to deal with an unprecedented decrease in incomes. As a result, air navigation providers collected less fees for their services, due to significantly fewer flights. In the operational perspective, pilots and air traffic controllers practiced less. The problems and obstacles developed into many other dimensions.
+
+Hence, the current scenario is a proper moment to further investigate the concept of resilience.
+
+```{r}
+# Problem Statement 
+
+# The problem is that, currently, the concept
+# of resilience is mostly directed to recovery
+# against delay propagation after negative 
+# disturbances. However, the current scenario
+# poses an inverted challenge, of very low 
+# delays due to low demand against surplus 
+# capacity. Therefore, there is room for 
+# enlarging the comprehension of the concept
+# of resilience in ATM systems. 
+
+# # Purpose Statement
+# 
+# ???The purpose of this research is to 
+# investigate additional dimensions in which 
+# resilience could be measured, in addition
+# to the current framework of delay analysis.
+# 
+# Research Question
+# 
+# ???How can we enlarge the concept of 
+# resilience, so that it is applicable to
+# scenarios of low traffic? 
 ```
 
-## Including Plots
+<!--| 2. High-Level background of previous work or relevance. -->
 
-You can also embed plots, for example:
+<!--| 3. Purpose and significance of the paper.  -->
 
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
+<!--| 4. Method by which the problem is approached. -->
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+<!-- 5. Contribution of paper -->
+
+The contribution of this paper are
+
+-   conceptualisation of the COVID-19 impact on air transportation as a resilience problem;
+
+-   assessing the impact on the basis of open data <!-- specify a bit more what we do/model/analyse -->
+
+-   identification of patterns and/or measures to describe and quantify/evaluate the level of recovery (or disruption)
+
+# Background
+
+## COVID-19 & Air Transportation
+
+## Resilience
+
+EUROCONTROL (2009): first definition of resilience in ATM context -- "Resilience is the intrinsic ability of a system to adjust its functioning prior to, during, or following changes and disturbances, so that it can sustain required operations under both expected and unexpected conditions".
+
+Gluchshenko (2012):
+
+Definitions for Resilience, robustness, disturbance, stress, and perturbation Proposition for a framework of different levels of stress/perturbations Proposition of metrics for resilience (both quantitative and qualitative)
+
+Gluchshenko (2013): repeats the previous ideas and adds a performance-based approach as well as an algorithm to investigate resilience
+
+Project Resilience 2050 (Jun/2012 + 43 months) -- includes the previous definitions and other technical tasks. However, it evolves the way to measure resilience. Now, not only the time of deviation and time of recovery is considered. The project measures it as the relative difference of rate of delays correlation, or R = (ax1 -- dx1)/dx1 -- it has no unit, it's the difference between two pearson correlations.
+
+Koelle (2015): proposes to address resilience as a situation management and state-oriented problem. Through two case studies, argued that "there is a lack of fit of the current operational ANS performance indicators to address impact of disruptions as they are primarily based on actual timestamps or transition times."
+
+## \<if we need to fill space\> Crowd-Sourced Data Collection
+
+<!-- provide overview of data collection through crowd-sourced network and communities -->
+
+# Method/Materials
+
+## Open-source Data
+
+# Results/Discussion
+
+to be developed
+
+# Conclusion
+
+<!-- 1. What is shown by this work and its significance.  -->
+
+<!-- 2. Limitations and advantages. -->
+
+<!-- 3. Applications of the results. -->
+
+<!-- 4. Recommendations for further work. -->
+
+# Acknowledgment {.unnumbered}
+
+# References {.unnumbered}
+
+<!-- DO NOT EDIT BELOW THIS POINT ----------------------------------->
