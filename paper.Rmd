@@ -83,12 +83,13 @@ Hence, the current scenario is a proper moment to further investigate the concep
 <!--| 2. High-Level background of previous work or relevance. -->
 
 <!--| 3. Purpose and significance of the paper.  -->
-This paper approaches the impact of the pandemic as a massive service disruption of the pre-pandemic global connectivity and regional air transport networks. In particular, the project aims to provide data analytical evidence for policy success and transformation of the air transportation system. As an aspirational goal, the industry aims to recover in a “greener” manner. To date, no assessment of this transformational aspects has been conducted. 
+
+This paper approaches the impact of the pandemic as a massive service disruption of the pre-pandemic global connectivity and regional air transport networks. In particular, the project aims to provide data analytical evidence for policy success and transformation of the air transportation system. As an aspirational goal, the industry aims to recover in a "greener" manner. To date, no assessment of this transformational aspects has been conducted.
 
 <!--| 4. Method by which the problem is approached. -->
 
-* data-analytical approach - using open data / freely available (tbd: validated against organisational data)
-* ...
+-   data-analytical approach - using open data / freely available (tbd: validated against organisational data)
+-   ...
 
 <!-- 5. Contribution of paper -->
 
