@@ -26,7 +26,13 @@ affiliation:
         - name: Fabio Coneiro Barbarosa
           email: second_author@somedomain.com
 abstract: |
-  This paper approaches the impact of the pandemic as a massive service disruption of the pre-pandemic global     connectivity and regional air transport networks. In particular, the project aims to provide data analytical evidence for policy success and transformation of the air transportation system. As an aspirational goal, the industry aims to recover in a “greener” manner. The project builds on openly available data sets. The paper will be produced in a reproducible manner making the data, code, and its processing available to interested reseachers and practitioners. The open assessment will provide policy makers with a tool to assess the reaction to local or regional measures. 
+  This paper approaches the impact of the pandemic as a massive service disruption of the pre-pandemic global     connectivity and regional air transport networks. In particular, the project aims to provide data analytical evidence for policy success and transformation of the air transportation system. As an aspirational goal, the industry aims to recover in a “greener” manner. The project builds on openly available data sets. The paper will be produced in a reproducible manner making the data, code, and its processing available to interested reseachers and practitioners. The open assessment will provide policy makers with a tool to assess the reaction to local or regional measures.
+  <!-- motivation -->
+  <!-- short background - why important -->
+  <!-- approach chosen / research method -->
+  <!-- experimental work -->
+  <!-- results obtained -->
+  <!-- conclusions / key take-away --> 
 ---
 
 ```{r setup, include=FALSE}
