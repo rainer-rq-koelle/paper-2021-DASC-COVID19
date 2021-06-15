@@ -37,6 +37,16 @@ abstract: |
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+
+```
+
+
+```{r}
+#CURRENT COMMENTS AND TO-DO'S
+# I HAVE DOWNLOADED 3 FILES FOR NOW (APR/19, APR/2020, APR/2021), JUST TO START "TIDYING" AND EXPLORING.
+#IT'S IN THE DATA-RAW FOLDER (NOT SHARED WITH GITHUB), AS ALWAYS.
 ```
 
 # Introduction
@@ -78,6 +88,13 @@ Hence, the current scenario is a proper moment to further investigate the concep
 # ???How can we enlarge the concept of 
 # resilience, so that it is applicable to
 # scenarios of low traffic? 
+#
+# ???Research Question: 
+# ???RQ1.What was the impact of the pandemic on ATM resilience?
+# ???  RQ1.1 How resilience can be modeled in a low-demand scenario?
+# ???  RQ1.2 How resilient were different ATM systems worldwide?
+
+
 ```
 
 <!--| 2. High-Level background of previous work or relevance. -->
@@ -89,7 +106,8 @@ This paper approaches the impact of the pandemic as a massive service disruption
 <!--| 4. Method by which the problem is approached. -->
 
 -   data-analytical approach - using open data / freely available (tbd: validated against organisational data)
--   ...
+-   ???RQ1.1 = through a qualitative analysis of previous proposed models
+-   ???RQ1.2 = through a quantitative analysis of open data
 
 <!-- 5. Contribution of paper -->
 
@@ -125,11 +143,55 @@ Koelle (2015): proposes to address resilience as a situation management and stat
 
 # Method/Materials
 
+
+A mixed-method approach, based on:
+
+  a) to answer RQ1.1, a qualitative analysis of previous models to develop acute low-demand as a disturbance
+  b) to answer RQ1.2, a quantitative analysis of open data, to observe (or not) different levels/stages of stress/recovery, which could indicate different "more" or "less" resilience to the disturbances
+
 ## Open-source Data
 
 # Results/Discussion
 
-to be developed
+1.1 
+
+a) Resilience can be measured as a function of time - the smaller the relationship between time of stress and the time of recovery, more resilient a system is.
+
+1.2 how to use open data to "see" resilience?
+
+1.2.1 Gather and prepare data
+```{r}
+#Reading and saving data
+source("./R/list_apt_files.R")
+file_names <- list_apt_files()
+open_sky <- map_dfr(file_names, read_csv)
+#write_csv(open_sky, "./data/open_sky.csv")
+
+# Take a look
+glimpse(open_sky)
+str(open_sky)
+summary(open_sky)
+
+# First exploration
+fb1 <- open_sky %>% transmute(typecode = as.factor(typecode), origin = as.factor(origin), destination = as.factor(destination), firstseen, lastseen)
+str(fb1)
+summary(fb1)
+# More than one million NA's
+
+fb2 <- fb1 %>% drop_na()
+str(fb2)
+summary(fb2)
+# Better...
+
+#Visualizing something...
+df1 <- fb2 %>% group_by(DATE = date(firstseen)) %>% summarize(count = n())
+df1 %>% ggplot(aes(x = as.factor(year(DATE)))) +
+  geom_boxplot(aes(y = count))
+
+```
+
+
+1.2.2 
 
 # Conclusion
 
