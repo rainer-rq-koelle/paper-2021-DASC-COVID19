@@ -166,7 +166,10 @@ source("./R/list_apt_files.R")
 file_names <- list_apt_files()
 open_sky <- map_dfr(file_names, read_csv)
 #write_csv(open_sky, "./data/open_sky.csv")
+```
 
+
+```{r}
 # Take a look
 glimpse(open_sky)
 str(open_sky)
@@ -187,6 +190,26 @@ summary(fb2)
 df1 <- fb2 %>% group_by(DATE = date(firstseen)) %>% summarize(count = n())
 df1 %>% ggplot(aes(x = as.factor(year(DATE)))) +
   geom_boxplot(aes(y = count))
+# This is the daily traffic of Aprils, distributed as a boxplot, FOR THE WHOLE WORLD! Needs to filter.
+
+#Filtering Brazilian and European data to reduce the sample (and csv) size
+#Preparing airports file
+
+bra_10_apts <- c("SBBR", "SBGR", "SBSP", "SBKP", "SBRJ", "SBGL", "SBCF", "SBSV", "SBPA", "SBCT")
+eur_apts <- c("EHAM","LFPG","EGLL","EDDF","EDDM","LEMD","LIRF","LEBL","EGKK","LSZH")
+study_airports <- c(bra_10_apts, eur_apts)
+study_airports
+
+fb2 <- fb2 %>% filter(origin %in% bra_10_apts | destination %in% bra_10_apts) %>% mutate(REG = "BRA", .before = typecode)
+fb2
+summary(fb2)
+
+
+#airports <- read_csv("data-raw/airports.csv")
+#airports <- airports %>% transmute(ICAO = ident, CONTINENT = continent, COUNTRY = iso_country, REGION = iso_region, NAME #= name, CITY = municipality) 
+#airports <- airports %>% mutate(CONTINENT = case_when(is.na(CONTINENT) ~ "NA", TRUE ~ CONTINENT))
+#airports
+#write_csv(airports, "./data/airports_info.csv")
 
 ```
 
