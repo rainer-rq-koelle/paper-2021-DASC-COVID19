@@ -161,11 +161,18 @@ a) Resilience can be measured as a function of time - the smaller the relationsh
 
 1.2.1 Gather and prepare data
 ```{r}
-#Reading and saving data
+#Reading raw data protocol
+
 source("./R/list_apt_files.R")
-file_names <- list_apt_files()
+year <- "2021"
+file_names <- list_apt_files(.year = year)
 open_sky <- map_dfr(file_names, read_csv)
+fb1 <- open_sky %>% transmute(typecode = as.factor(typecode), origin = as.factor(origin), destination = as.factor(destination), firstseen, lastseen) %>% drop_na()
+
 #write_csv(open_sky, "./data/open_sky.csv")
+
+#Reading prepared data
+open_sky <- read_csv("data/open_sky.csv")
 ```
 
 
@@ -194,16 +201,38 @@ df1 %>% ggplot(aes(x = as.factor(year(DATE)))) +
 
 #Filtering Brazilian and European data to reduce the sample (and csv) size
 #Preparing airports file
+#Here we can control the selective sample
 
 bra_10_apts <- c("SBBR", "SBGR", "SBSP", "SBKP", "SBRJ", "SBGL", "SBCF", "SBSV", "SBPA", "SBCT")
 eur_apts <- c("EHAM","LFPG","EGLL","EDDF","EDDM","LEMD","LIRF","LEBL","EGKK","LSZH")
 study_airports <- c(bra_10_apts, eur_apts)
-study_airports
 
-fb2 <- fb2 %>% filter(origin %in% bra_10_apts | destination %in% bra_10_apts) %>% mutate(REG = "BRA", .before = typecode)
-fb2
-summary(fb2)
+fb3 <- fb2 %>% filter(origin %in% study_airports | destination %in% study_airports)
 
+base_dataset <- fb3 %>% mutate(BRA_ORIGIN = origin %in% bra_10_apts,
+                        BRA_DEST = destination %in% bra_10_apts,
+                        EUR_ORIGIN = origin %in% eur_apts,
+                        EUR_DEST = destination %in% eur_apts,
+                        BRA_EUR_DIRECT = (origin %in% bra_10_apts | destination %in% bra_10_apts) & (origin %in% eur_apts | destination %in% eur_apts))
+
+# I opened a lot of logical variables to facilitate us knowing how many flights there are
+
+summary(base_dataset)
+
+temp1 <- base_dataset %>% group_by(
+  YR = year(firstseen),
+  ADEP = origin,
+  ADES = destination) %>%
+  summarise(COUNT = n(), .groups = "drop") %>%
+  arrange(desc(COUNT)) %>%
+  transmute(ROUTE = paste(ADEP, ADES, sep = "-"), YR, COUNT) %>%
+  group_by(YR) %>%
+  slice_head(n = 15)
+temp1
+
+temp1 %>% ggplot(aes(x = COUNT)) +
+  geom_col(aes(y = ROUTE)) +
+  facet_grid(.~YR)
 
 #airports <- read_csv("data-raw/airports.csv")
 #airports <- airports %>% transmute(ICAO = ident, CONTINENT = continent, COUNTRY = iso_country, REGION = iso_region, NAME #= name, CITY = municipality) 
