@@ -42,6 +42,15 @@ library(lubridate)
 
 ```
 
+```{r}
+#If someone needs filters below, here we can control any selective sample
+#Filtering Brazilian and European data to reduce the sample (and csv) size
+#Currently, those filters are not in use in the code, they are here just in case.
+
+bra_10_apts <- c("SBBR", "SBGR", "SBSP", "SBKP", "SBRJ", "SBGL", "SBCF", "SBSV", "SBPA", "SBCT")
+eur_apts <- c("EHAM","LFPG","EGLL","EDDF","EDDM","LEMD","LIRF","LEBL","EGKK","LSZH")
+study_airports <- c(bra_10_apts, eur_apts)
+```
 
 ```{r}
 #CURRENT COMMENTS AND TO-DO'S
@@ -164,6 +173,8 @@ a) Resilience can be measured as a function of time - the smaller the relationsh
 #Reading raw data
 
 source("./R/list_apt_files.R")
+
+#Here I will assign only one month - "202105". If you want to include a full year, just assign year to "2021" or "2020". It works.
 year <- "202105"
 file_names <- list_apt_files(.year = year)
 open_sky <- map_dfr(file_names, read_csv)
@@ -181,71 +192,68 @@ fb1
 
 
 ```{r}
-#Joining coutries and regions
+#Joining countries and regions
 # NOTE: the airports.csv file below is the downloaded file from www.ourairports.org.
 
-airports <- read_csv("data-raw/airports.csv") %>% transmute(ICAO = ident, CTRY = iso_country)
+airports <- read_csv("data-raw/airports.csv") %>% mutate(continent = case_when(is.na(continent) ~ "NA", TRUE ~ continent))
+apt_countries <- airports %>% transmute(ICAO = ident, CTRY = iso_country)
+
 #There are missing airports
-airports <- airports %>% add_row(ICAO  = c("SPJC", "YBMC", "LSZM", "YSCH", "EPLB", "K3M3", "VV01", "SC28", "CWF2", "EHDB", "74XA", "HE13"), CTRY  = c("PE", "AU", "FR", "AU", "PL", "US", "VN", "US", "CA", "NL", "US", "EG"))
+apt_countries <- apt_countries %>% add_row(ICAO  = c("SPJC", "YBMC", "LSZM", "YSCH", "EPLB", "K3M3", "VV01", "SC28", "CWF2", "EHDB", "74XA", "HE13"), CTRY  = c("PE", "AU", "FR", "AU", "PL", "US", "VN", "US", "CA", "NL", "US", "EG"))
+
+#If you need to write
+#write_csv(apt_countries, "./data/apt_countries.csv")
 
 #Joining to ADEP
-fb2 <- left_join(fb1, airports, by = c("ADEP" = "ICAO")) %>% mutate(ADEP_CTRY = CTRY, .keep = "unused", .after = ADEP)
+fb2 <- left_join(fb1, apt_countries, by = c("ADEP" = "ICAO")) %>% mutate(ADEP_CTRY = CTRY, .keep = "unused", .after = ADEP)
 #Joining to ADES
-fb3 <- left_join(fb2, airports, by = c("ADES" = "ICAO")) %>% mutate(ADES_CTRY = CTRY, .keep = "unused", .after = ADES)
+fb3 <- left_join(fb2, apt_countries, by = c("ADES" = "ICAO")) %>% mutate(ADES_CTRY = CTRY, .keep = "unused", .after = ADES)
 
 #Check  NA's
 colSums(is.na(fb3))
 # Very few NA's - it's safe to drop and factor now
 
-world_dataset <- fb3 %>% drop_na() %>% mutate(ADEP_CTRY = as.factor(ADEP_CTRY), ADES_CTRY = as.factor(ADES_CTRY))
-world_dataset
+fb4 <- fb3 %>% drop_na() %>% mutate(ADEP_CTRY = as.factor(ADEP_CTRY), ADES_CTRY = as.factor(ADES_CTRY))
+
+# Associate the regions
+a <- airports %>% filter(continent == "EU") %>% select(iso_country) %>% unique()
+eur_countries <- a$iso_country
+
+#NOTE: Here we can adjust the European countries that comprises EU region by editing the "eur_countries" vector:
+# Currently in european countries: "GB" "AD" "ES" "AL" "XK" "AT" "BA" "BE" "BG" "IS" "BY" "UA" "CH" "CZ" "SK" "DE" "RU" "DK" "HR" "EE" "FI" "GG" "JE" "IM" "NL" "IE" "FO" "LU" "NO" "PL" "PT" "SE" "LV" "LT" "FR" "GR" "HU" "IT" "LI" "SI" "MT" "MC" "RO" "TR" "MD" "MK" "GI" "RS" "ME" "SM" "GE" "VA"
+
+base_dataset <- fb4 %>% mutate(ADEP_REG = as.factor(case_when(ADEP_CTRY == "US" ~ "US",
+                                    ADEP_CTRY == "BR" ~ "BR",
+                                    ADEP_CTRY %in% eur_countries ~ "EU",
+                                    TRUE ~ "Other")), .after = ADEP_CTRY) %>%
+                mutate(ADES_REG = as.factor(case_when(ADES_CTRY == "US" ~ "US",
+                                    ADES_CTRY == "BR" ~ "BR",
+                                    ADES_CTRY %in% eur_countries ~ "EU",
+                                    TRUE ~ "Other")), .after = ADES_CTRY)
+colSums(is.na(base_dataset))
+# No NA's - yaaayy!!
+glimpse(base_dataset)
+summary(base_dataset)
+
 ```
 
 ```{r}
+#quick peek
+base_dataset
+#
+#
+#
+#NOW IT'S TIME TO LOOP TO OTHER MONTHS AND BIND THEM ALL!
+#
+#
+#
 
 
+#quick first look
+temp1 <- base_dataset %>% group_by(DATE, ADEP_REG, ADES_REG) %>% summarize(FLIGHTS = n()) %>% mutate(ROUTE = paste(ADEP_REG, ADES_REG, sep = "-"), .keep = "unused")
 
-#Filtering Brazilian and European data to reduce the sample (and csv) size
-#Preparing airports file
-#Here we can control the selective sample
-
-bra_10_apts <- c("SBBR", "SBGR", "SBSP", "SBKP", "SBRJ", "SBGL", "SBCF", "SBSV", "SBPA", "SBCT")
-eur_apts <- c("EHAM","LFPG","EGLL","EDDF","EDDM","LEMD","LIRF","LEBL","EGKK","LSZH")
-study_airports <- c(bra_10_apts, eur_apts)
-
-fb3 <- fb2 %>% filter(origin %in% study_airports | destination %in% study_airports)
-
-base_dataset <- fb3 %>% mutate(BRA_ORIGIN = origin %in% bra_10_apts,
-                        BRA_DEST = destination %in% bra_10_apts,
-                        EUR_ORIGIN = origin %in% eur_apts,
-                        EUR_DEST = destination %in% eur_apts,
-                        BRA_EUR_DIRECT = (origin %in% bra_10_apts | destination %in% bra_10_apts) & (origin %in% eur_apts | destination %in% eur_apts))
-
-# I opened a lot of logical variables to facilitate us knowing how many flights there are
-
-summary(base_dataset)
-
-temp1 <- base_dataset %>% group_by(
-  YR = year(firstseen),
-  ADEP = origin,
-  ADES = destination) %>%
-  summarise(COUNT = n(), .groups = "drop") %>%
-  arrange(desc(COUNT)) %>%
-  transmute(ROUTE = paste(ADEP, ADES, sep = "-"), YR, COUNT) %>%
-  group_by(YR) %>%
-  slice_head(n = 15)
-temp1
-
-temp1 %>% ggplot(aes(x = COUNT)) +
-  geom_col(aes(y = ROUTE)) +
-  facet_grid(.~YR)
-
-#airports <- read_csv("data-raw/airports.csv")
-#airports <- airports %>% transmute(ICAO = ident, CONTINENT = continent, COUNTRY = iso_country, REGION = iso_region, NAME #= name, CITY = municipality) 
-#airports <- airports %>% mutate(CONTINENT = case_when(is.na(CONTINENT) ~ "NA", TRUE ~ CONTINENT))
-#airports
-#write_csv(airports, "./data/airports_info.csv")
-
+temp1 %>% ggplot(aes(x = DATE)) +
+  geom_line(aes(y = (FLIGHTS), color = ROUTE))
 ```
 
 
