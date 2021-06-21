@@ -39,7 +39,8 @@ abstract: |
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(lubridate)
-
+library(stats)
+library(zoo)
 ```
 
 ```{r}
@@ -194,7 +195,7 @@ a) Resilience can be measured as a function of time - the smaller the relationsh
 source("./R/list_apt_files.R")
 
 #Here I will assign only one month - "202105". If you want to include a full year, just assign year to "2021" or "2020". It works.
-year <- "202105"
+year <- "2021"
 file_names <- list_apt_files(.year = year)
 open_sky <- map_dfr(file_names, read_csv)
 
@@ -250,13 +251,37 @@ base_dataset
 #
 #
 #
+```
 
 
+```{r}
 #quick first look
-temp1 <- base_dataset %>% group_by(DATE, ADEP_REG, ADES_REG) %>% summarize(FLIGHTS = n()) %>% mutate(ROUTE = paste(ADEP_REG, ADES_REG, sep = "-"), .keep = "unused")
+temp1 <- base_dataset %>% group_by(DATE, ADEP_REG, ADES_REG) %>% summarize(FLIGHTS = n(), .groups = "drop") %>%
+  filter(ADEP_REG %in% c("BR", "EU"), ADES_REG  %in% c("BR", "EU")) %>%
+  mutate(ROUTE = paste(ADEP_REG, ADES_REG, sep = "-"), .keep = "unused", .before = "FLIGHTS") %>%
+  pivot_wider(names_from = ROUTE, values_from = FLIGHTS) 
+temp1
 
+#First stab at different levels of traffic
+
+n <- 0.5
 temp1 %>% ggplot(aes(x = DATE)) +
-  geom_line(aes(y = (FLIGHTS), color = ROUTE))
+  geom_point(aes(y = `EU-EU`, color = `EU-EU` > quantile(`EU-EU`[month(DATE) %in% 1:2], probs = n)), shape = 4) +
+  geom_point(aes(y = `BR-BR`, color = `BR-BR` > quantile(`BR-BR`[month(DATE) %in% 1:2], probs = n)), shape = 1) +
+  labs(y  = "Flights") + 
+  theme(legend.position = "bottom")
+
+#Normalized by the median of the last 3 months
+temp2 <- temp1 %>% pivot_longer(cols = 2:5, names_to = "ROUTE", values_to = "FLIGHTS") %>% group_by(ROUTE) %>% mutate(MOVING_MEDIAN = quantile(FLIGHTS[month(DATE) %in% month(last(DATE))-1:month(last(DATE))], probs = 0.5), NORM_FLTS = FLIGHTS/MOVING_MEDIAN)
+temp2
+
+temp2 %>% ggplot(aes(x = DATE)) +
+  geom_line(aes(y = NORM_FLTS, color = ROUTE)) +
+  theme_minimal()
+```
+
+```{r}
+
 ```
 
 
