@@ -1,0 +1,307 @@
+---
+title: "Data Preparation"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(lubridate)
+
+#Reading raw data
+## todo: change utility function list_osn_files
+source("./R/list_apt_files.R")
+```
+
+# Overview
+
+This file serves as a jump pad for the data preparation (and will be updated as we go).
+The utility functions introduced read in the data, perform some associations (e.g. country assignment), filter, and save out the flight-by-flight dataset to drive the study for the DASC paper.
+
+Conventions:
+
+* Opensky Network data downloaded from https://zenodo.org/record/4893103#.YNCqukxCSUk
+* airports.csv downloaded from www.ourairports.org.
+* downloaded data stored in sub-folder **data-raw**
+* trimmed/cleaned data saved out to **data**
+
+More to come. tbd!
+
+# Read in OSN Data
+
+```{r}
+###Preparatory codes
+
+#If someone needs filters below, here we can control any selective sample
+#Filtering Brazilian and European data to reduce the sample (and csv) size
+#Currently, those filters are not in use in the code, they are here just in case.
+bra_10_apts <- c("SBBR", "SBGR", "SBSP", "SBKP", "SBRJ", "SBGL", "SBCF", "SBSV", "SBPA", "SBCT")
+eur_apts <- c("EHAM","LFPG","EGLL","EDDF","EDDM","LEMD","LIRF","LEBL","EGKK","LSZH")
+study_airports <- c(bra_10_apts, eur_apts)
+
+###Preparing airport file
+#NOTE: the airports.csv file below is the downloaded file from www.ourairports.org.
+airports <- read_csv("data-raw/airports.csv") %>% mutate(continent = case_when(is.na(continent) ~ "NA", TRUE ~ continent))
+
+#There are missing airports and too much variables
+apt_countries <- airports %>% transmute(ICAO = ident, CTRY = iso_country) %>% add_row(ICAO  = c("SPJC", "YBMC", "LSZM", "YSCH", "EPLB", "K3M3", "VV01", "SC28", "CWF2", "EHDB", "74XA", "HE13"), CTRY  = c("PE", "AU", "FR", "AU", "PL", "US", "VN", "US", "CA", "NL", "US", "EG"))
+
+#If you need to write
+#write_csv(apt_countries, "./data/apt_countries.csv")
+#apt_countries is ready.
+
+# Associate the regions
+a <- airports %>% filter(continent == "EU") %>% select(iso_country) %>% unique()
+eur_countries <- a$iso_country
+#eur_countries is ready.
+
+```
+
+## Reading the raw data
+
+### Utility function for reading OSN and saving out analytic data
+
+```{r}
+#Here I will assign only one month - "202105". If you want to include a full year, just assign year to "2021" or "2020". It works.
+#year <- "202105"
+# file_names <- list_apt_files(.year = year)
+#open_sky <- map_dfr(file_names, read_csv)
+
+
+# column specification for OSN -----------------------------------
+osn_colspec <- cols(
+  callsign = col_character(),
+  number = col_character(),
+  icao24 = col_character(),
+  registration = col_character(),
+  typecode = col_character(),
+  origin = col_character(),
+  destination = col_character(),
+  firstseen = col_datetime(format = ""),
+  lastseen = col_datetime(format = ""),
+  day = col_datetime(format = ""),
+  latitude_1 = col_double(),
+  longitude_1 = col_double(),
+  altitude_1 = col_double(),
+  latitude_2 = col_double(),
+  longitude_2 = col_double(),
+  altitude_2 = col_double()
+)
+
+#' read_osn_covid
+#' 
+#' utility function to read one month of OSN covid data
+#'
+#' @param .fn filename of OSN data file
+#' @param .col_spec dplyr column specification for datatype assignment
+#'
+read_osn_covid <- function(.fn, .col_spec = osn_colspec){
+# todo - check filename
+
+# read 
+  fb <- read_csv(file = .fn, col_types = .col_spec)
+  
+# Selecting relevant variables
+
+  fb <- fb %>% 
+  transmute( ADEP = origin
+            ,ADES = destination
+            ,TYPE = as.factor(typecode)
+            ,DATE = date(day)
+            ,CALL = callsign
+            #,ACFT_ID = aircraft_uid    # throws an error in today's data download
+            )
+
+return(fb)
+}
+
+#-------------- add ADEP/ADES & country
+#' append country code to ADEP and ADES
+#'
+#' @param .ds flight data set with ADEP and ADES
+#' @param .apt_countries lookup of ADEP/ADES and country
+#'
+#' @return appended dataset
+#' @export
+#'
+append_ad_ctry <- function(.ds, .apt_countries = apt_countries){
+  # todo - check for valid dataset
+  df <- .ds
+  #Joining to ADEP
+  df <- left_join(df, .apt_countries, by = c("ADEP" = "ICAO")) %>%
+    mutate(ADEP_CTRY = CTRY, .keep = "unused", .after = ADEP)
+  #Joining to ADES
+  df <- left_join(df, .apt_countries, by = c("ADES" = "ICAO")) %>% 
+    mutate(ADES_CTRY = CTRY, .keep = "unused", .after = ADES)
+  return(df)
+}
+
+#------------------ add region
+#' Add region to identified ADEP/ADES country
+#'
+#' @param .ds flight data set with ADEP_CTRY and ADES_CTRY
+#'
+#' @return appended data set
+#' @export
+#'
+append_region <- function(.ds, .eur_countries = eur_countries){
+  # todo check for valid data set
+  df <- .ds
+  # append region for study
+  df <- df %>%
+    # ADEP region
+    mutate(ADEP_REG = case_when(
+                          ADEP_CTRY == "US" ~ "US"
+                         ,ADEP_CTRY == "BR" ~ "BR"
+                         ,ADEP_CTRY %in% .eur_countries ~ "EU"
+                         ,TRUE ~ "Other")
+      ,.after = ADEP_CTRY
+      ) %>%
+    # ADES region
+    mutate(ADES_REG = case_when(
+                          ADES_CTRY == "US" ~ "US"
+                         ,ADES_CTRY == "BR" ~ "BR"
+                         ,ADES_CTRY %in% eur_countries ~ "EU"
+                         ,TRUE ~ "Other")
+      , .after = ADES_CTRY)
+  return(df)
+}
+
+#---------------- check / describe data set
+#' extract meta data for data set
+#'
+#' @param .ds covid flight data set
+#'
+#' @return meta dataset
+#' @export
+#'
+extract_meta_osn <- function(.ds){
+  # todo: check for valid data set
+  df <- .ds 
+  # extract useful meta-data
+  df <- df %>% 
+    mutate(MOF = floor_date(DATE, unit = "month")) %>%
+    group_by(MOF) %>%
+    summarise( N = n()                         # number of flights in data set
+              ,ADEP_NA = sum(is.na(ADEP))      # number of ADEP NA
+              ,ADES_NA = sum(is.na(ADES))
+              ,TYPE_NA = sum(is.na(TYPE))
+              )
+  
+  return(df)
+}
+
+check_and_write_meta <- function(.new_meta, .my_meta = "./data/meta_osn.csv"){
+  our_meta <- .my_meta
+  # meta file exists
+  if(file.exists(our_meta)){
+    meta <- read_csv(our_meta, col_types = cols())  # cöl_types = cols() to silence
+    meta <- meta %>% bind_rows(.new_meta)
+    # todo -------------- handle multiple run and changes
+  }else{
+    meta <- .new_meta
+  }
+  # store meta data
+  write_csv(meta, file = our_meta)
+}
+
+prep_base_data <- function(.fn = file_names, ...){
+ds <- read_osn_covid(.fn)
+ds <- ds %>% append_ad_ctry()
+ds <- ds %>% append_region()
+
+meta <- extract_meta_osn(ds)
+check_and_write_meta(meta)
+
+#------------ daily counts -------------------------------------
+daily_count <- ds %>%
+  group_by(DATE) %>% summarise(FLTS = n())
+check_and_write_meta(daily_count, "./data/daily_osn.csv")
+#----------------------------------------------------------------
+
+ds <- ds %>% drop_na()  # drop all ~ assumed to be clean
+
+# write out base data
+my_fn <- gsub(pattern = "-raw", replacement = "", x = .fn)
+my_fn <- gsub(pattern = "flightlist_", replacement = "base_osn_", x = my_fn)
+my_fn <- gsub(pattern = "\\.gz", replacement = "", x = my_fn)
+write_csv(ds, file = my_fn)
+message(paste0("run completed for ", my_fn))
+}
+```
+
+## loop over all data
+
+```{r}
+# read all files (note adpat function name)
+fns <- list_apt_files()
+
+# crunch study data
+walk(fns, .f = prep_base_data)
+```
+
+# Todo's, observations, etc.
+
+The following is currently kept and not further processed.
+
+## check for some observations
+
+```{}
+# Very few NA's - it's safe to drop and factor now
+# todo: check what airports have no country association in ourairports.com
+# fb2 %>% filter(is.na(ADEP_CTRY)) %>% group_by(ADEP) %>% count() %>% arrange(desc(n))
+# A tibble: 11 x 2
+# Groups:   ADEP [11]
+#    ADEP      n
+#    <chr> <int>
+#  1 YPEC    128
+#  2 EG32     88
+#  3 EGZJ     31
+#  4 YCPP     26
+#  5 KMAN     16
+#  6 KX40     15
+#  7 CSV8      9
+#  8 CARK      8
+#  9 LHKK      2
+# 10 CLV2      1
+# 11 EKVO      1
+
+fb4 <- fb3 %>% drop_na() %>% mutate(ADEP_CTRY = as.factor(ADEP_CTRY), ADES_CTRY = as.factor(ADES_CTRY))
+
+#NOTE: Here we can adjust the European countries that comprises EU region by editing the "eur_countries" vector:
+# Currently in european countries: "GB" "AD" "ES" "AL" "XK" "AT" "BA" "BE" "BG" "IS" "BY" "UA" "CH" "CZ" "SK" "DE" "RU" "DK" "HR" "EE" "FI" "GG" "JE" "IM" "NL" "IE" "FO" "LU" "NO" "PL" "PT" "SE" "LV" "LT" "FR" "GR" "HU" "IT" "LI" "SI" "MT" "MC" "RO" "TR" "MD" "MK" "GI" "RS" "ME" "SM" "GE" "VA"
+
+base_dataset <- fb4 %>% mutate(ADEP_REG = as.factor(case_when(ADEP_CTRY == "US" ~ "US",
+                                    ADEP_CTRY == "BR" ~ "BR",
+                                    ADEP_CTRY %in% eur_countries ~ "EU",
+                                    TRUE ~ "Other")), .after = ADEP_CTRY) %>%
+                mutate(ADES_REG = as.factor(case_when(ADES_CTRY == "US" ~ "US",
+                                    ADES_CTRY == "BR" ~ "BR",
+                                    ADES_CTRY %in% eur_countries ~ "EU",
+                                    TRUE ~ "Other")), .after = ADES_CTRY)
+colSums(is.na(base_dataset))
+# No NA's - yaaayy!!
+glimpse(base_dataset)
+summary(base_dataset)
+
+```
+
+```{r, eval=FALSE}
+#quick peek
+base_dataset
+#
+#
+#
+#NOW IT'S TIME TO LOOP TO OTHER MONTHS AND BIND THEM ALL!
+#
+#
+#
+
+
+#quick first look
+temp1 <- base_dataset %>% group_by(DATE, ADEP_REG, ADES_REG) %>% summarize(FLIGHTS = n()) %>% mutate(ROUTE = paste(ADEP_REG, ADES_REG, sep = "-"), .keep = "unused")
+
+temp1 %>% ggplot(aes(x = DATE)) +
+  geom_line(aes(y = (FLIGHTS), color = ROUTE))
+```
+
