@@ -313,6 +313,16 @@
 
 
 \usepackage{longtable,booktabs}
+\usepackage{graphicx}
+% We will generate all images so they have a width \maxwidth. This means
+% that they will get their normal width if they fit onto the page, but
+% are scaled down if they would overflow the margins.
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth
+\else\Gin@nat@width\fi}
+\makeatother
+\let\Oldincludegraphics\includegraphics
+\renewcommand{\includegraphics}[1]{\Oldincludegraphics[width=\maxwidth]{#1}}
 
 \usepackage[unicode=true]{hyperref}
 
@@ -527,6 +537,51 @@ This paper approaches the impact of the pandemic as a massive service disruption
 \IEEEpeerreviewmaketitle
 
 
+\begin{Shaded}
+\begin{Highlighting}[]
+\DocumentationTok{\#\# set bookdown specs/defaults for high quality output}
+\CommentTok{\#{-}{-}{-}{-}{-}{-}{-}{-}{-}{-} check for the settings}
+
+\DocumentationTok{\#\# theme default for ggplot}
+\FunctionTok{theme\_set}\NormalTok{(}
+  \FunctionTok{theme\_minimal}\NormalTok{()}
+\NormalTok{  )}
+
+\DocumentationTok{\#\#\#Preparatory codes}
+
+\CommentTok{\#If someone needs filters below, here we can control any selective sample}
+\CommentTok{\#Filtering Brazilian and European data to reduce the sample (and csv) size}
+\CommentTok{\#Currently, those filters are not in use in the code, they are here just in case.}
+\NormalTok{bra\_10\_apts }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\StringTok{"SBBR"}\NormalTok{, }\StringTok{"SBGR"}\NormalTok{, }\StringTok{"SBSP"}\NormalTok{, }\StringTok{"SBKP"}\NormalTok{, }\StringTok{"SBRJ"}\NormalTok{, }\StringTok{"SBGL"}\NormalTok{, }\StringTok{"SBCF"}\NormalTok{, }\StringTok{"SBSV"}\NormalTok{, }\StringTok{"SBPA"}\NormalTok{, }\StringTok{"SBCT"}\NormalTok{)}
+\NormalTok{eur\_apts }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\StringTok{"EHAM"}\NormalTok{,}\StringTok{"LFPG"}\NormalTok{,}\StringTok{"EGLL"}\NormalTok{,}\StringTok{"EDDF"}\NormalTok{,}\StringTok{"EDDM"}\NormalTok{,}\StringTok{"LEMD"}\NormalTok{,}\StringTok{"LIRF"}\NormalTok{,}\StringTok{"LEBL"}\NormalTok{,}\StringTok{"EGKK"}\NormalTok{,}\StringTok{"LSZH"}\NormalTok{)}
+\NormalTok{study\_airports }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(bra\_10\_apts, eur\_apts)}
+
+\DocumentationTok{\#\#\#Preparing airport file}
+\CommentTok{\#NOTE: the airports.csv file below is the downloaded file from www.ourairports.org.}
+\NormalTok{airports }\OtherTok{\textless{}{-}} \FunctionTok{read\_csv}\NormalTok{(}\StringTok{"data{-}raw/airports.csv"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{mutate}\NormalTok{(}\AttributeTok{continent =} \FunctionTok{case\_when}\NormalTok{(}\FunctionTok{is.na}\NormalTok{(continent) }\SpecialCharTok{\textasciitilde{}} \StringTok{"NA"}\NormalTok{, }\ConstantTok{TRUE} \SpecialCharTok{\textasciitilde{}}\NormalTok{ continent))}
+
+\CommentTok{\#There are missing airports and too much variables}
+\NormalTok{apt\_countries }\OtherTok{\textless{}{-}}\NormalTok{ airports }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{transmute}\NormalTok{(}\AttributeTok{ICAO =}\NormalTok{ ident, }\AttributeTok{CTRY =}\NormalTok{ iso\_country) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{add\_row}\NormalTok{(}\AttributeTok{ICAO  =} \FunctionTok{c}\NormalTok{(}\StringTok{"SPJC"}\NormalTok{, }\StringTok{"YBMC"}\NormalTok{, }\StringTok{"LSZM"}\NormalTok{, }\StringTok{"YSCH"}\NormalTok{, }\StringTok{"EPLB"}\NormalTok{, }\StringTok{"K3M3"}\NormalTok{, }\StringTok{"VV01"}\NormalTok{, }\StringTok{"SC28"}\NormalTok{, }\StringTok{"CWF2"}\NormalTok{, }\StringTok{"EHDB"}\NormalTok{, }\StringTok{"74XA"}\NormalTok{, }\StringTok{"HE13"}\NormalTok{), }\AttributeTok{CTRY  =} \FunctionTok{c}\NormalTok{(}\StringTok{"PE"}\NormalTok{, }\StringTok{"AU"}\NormalTok{, }\StringTok{"FR"}\NormalTok{, }\StringTok{"AU"}\NormalTok{, }\StringTok{"PL"}\NormalTok{, }\StringTok{"US"}\NormalTok{, }\StringTok{"VN"}\NormalTok{, }\StringTok{"US"}\NormalTok{, }\StringTok{"CA"}\NormalTok{, }\StringTok{"NL"}\NormalTok{, }\StringTok{"US"}\NormalTok{, }\StringTok{"EG"}\NormalTok{))}
+
+\CommentTok{\#If you need to write}
+\CommentTok{\#write\_csv(apt\_countries, "./data/apt\_countries.csv")}
+\CommentTok{\#apt\_countries is ready.}
+
+\CommentTok{\# Associate the regions}
+\NormalTok{a }\OtherTok{\textless{}{-}}\NormalTok{ airports }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{filter}\NormalTok{(continent }\SpecialCharTok{==} \StringTok{"EU"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{select}\NormalTok{(iso\_country) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{unique}\NormalTok{()}
+\NormalTok{eur\_countries }\OtherTok{\textless{}{-}}\NormalTok{ a}\SpecialCharTok{$}\NormalTok{iso\_country}
+\CommentTok{\#eur\_countries is ready.}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#CURRENT COMMENTS AND TO{-}DO\textquotesingle{}S}
+\CommentTok{\# I HAVE DOWNLOADED 3 FILES FOR NOW (APR/19, APR/2020, APR/2021), JUST TO START "TIDYING" AND EXPLORING.}
+\CommentTok{\#IT\textquotesingle{}S IN THE DATA{-}RAW FOLDER (NOT SHARED WITH GITHUB), AS ALWAYS.}
+\end{Highlighting}
+\end{Shaded}
+
 \hypertarget{introduction}{%
 \section{Introduction}\label{introduction}}
 
@@ -566,6 +621,11 @@ Hence, the current scenario is a proper moment to further investigate the concep
 \CommentTok{\# ???How can we enlarge the concept of }
 \CommentTok{\# resilience, so that it is applicable to}
 \CommentTok{\# scenarios of low traffic? }
+\CommentTok{\#}
+\CommentTok{\# ???Research Question: }
+\CommentTok{\# ???RQ1.What was the impact of the pandemic on ATM resilience?}
+\CommentTok{\# ???  RQ1.1 How resilience can be modeled in a low{-}demand scenario?}
+\CommentTok{\# ???  RQ1.2 How resilient were different ATM systems worldwide?}
 \end{Highlighting}
 \end{Shaded}
 
@@ -576,7 +636,9 @@ This paper approaches the impact of the pandemic as a massive service disruption
 \item
   data-analytical approach - using open data / freely available (tbd: validated against organisational data)
 \item
-  \ldots{}
+  ???RQ1.1 = through a qualitative analysis of previous proposed models
+\item
+  ???RQ1.2 = through a quantitative analysis of open data
 \end{itemize}
 
 The contribution of this paper are
@@ -617,13 +679,444 @@ Koelle (2015): proposes to address resilience as a situation management and stat
 \hypertarget{methodmaterials}{%
 \section{Method/Materials}\label{methodmaterials}}
 
+A mixed-method approach, based on:
+
+\begin{enumerate}
+\def\labelenumi{\alph{enumi})}
+\tightlist
+\item
+  to answer RQ1.1, a qualitative analysis of previous models to develop acute low-demand as a disturbance
+\item
+  to answer RQ1.2, a quantitative analysis of open data, to observe (or not) different levels/stages of stress/recovery, which could indicate different ``more'' or ``less'' resilience to the disturbances
+\end{enumerate}
+
 \hypertarget{open-source-data}{%
 \subsection{Open-source Data}\label{open-source-data}}
+
+This study builds on publicly available data. Opensky Network collects crowdsourced air traffic data from more than 2500 feeders (sensor stations). To support the process of illustrating and studying the impact of the COVID pandemic on air traffic demand, a flight-by-flight dataset is provided on a monthly basis (Olive, Strohmeier, and Lübbe 2021). The data spans the period since 1. January 2019. Fig. \ref{fig:osndaily} shows the number of daily flights tracked by Opensky Network globally.
+
+
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{daily\_tfc }\OtherTok{\textless{}{-}} \FunctionTok{read\_csv}\NormalTok{(}\StringTok{"./data/daily\_osn.csv"}\NormalTok{)}
+
+\NormalTok{daily\_tfc }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{ggplot}\NormalTok{(}\AttributeTok{mapping =} \FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ DATE, }\AttributeTok{y =}\NormalTok{ FLTS)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_line}\NormalTok{() }\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}\AttributeTok{x =} \ConstantTok{NULL}\NormalTok{, }\AttributeTok{y =} \StringTok{"flights"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{figure}
+\centering
+\includegraphics{paper_files/figure-latex/osndaily-1.pdf}
+\caption{\label{fig:osndaily}Daily flights tracked by Opensky Network}
+\end{figure}
 
 \hypertarget{resultsdiscussion}{%
 \section{Results/Discussion}\label{resultsdiscussion}}
 
-to be developed
+1.1
+
+\begin{enumerate}
+\def\labelenumi{\alph{enumi})}
+\tightlist
+\item
+  Resilience can be measured as a function of time - the smaller the relationship between time of stress and the time of recovery, more resilient a system is.
+\end{enumerate}
+
+1.2 how to use open data to ``see'' resilience?
+
+1.2.1 Gather and prepare data
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#Reading raw data}
+
+\FunctionTok{source}\NormalTok{(}\StringTok{"./R/list\_apt\_files.R"}\NormalTok{)}
+
+\CommentTok{\#Here I will assign only one month {-} "202105". If you want to include a full year, just assign year to "2021" or "2020". It works.}
+\NormalTok{year }\OtherTok{\textless{}{-}} \StringTok{"2021"}
+\NormalTok{file\_names }\OtherTok{\textless{}{-}} \FunctionTok{list\_apt\_files}\NormalTok{(}\AttributeTok{.year =}\NormalTok{ year)}
+\NormalTok{open\_sky }\OtherTok{\textless{}{-}} \FunctionTok{map\_dfr}\NormalTok{(file\_names, read\_csv)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## 
+## -- Column specification --------------------------------------------------------
+## cols(
+##   callsign = col_character(),
+##   number = col_character(),
+##   icao24 = col_character(),
+##   registration = col_character(),
+##   typecode = col_character(),
+##   origin = col_character(),
+##   destination = col_character(),
+##   firstseen = col_datetime(format = ""),
+##   lastseen = col_datetime(format = ""),
+##   day = col_datetime(format = ""),
+##   latitude_1 = col_double(),
+##   longitude_1 = col_double(),
+##   altitude_1 = col_double(),
+##   latitude_2 = col_double(),
+##   longitude_2 = col_double(),
+##   altitude_2 = col_double()
+## )
+## 
+## 
+## -- Column specification --------------------------------------------------------
+## cols(
+##   callsign = col_character(),
+##   number = col_character(),
+##   icao24 = col_character(),
+##   registration = col_character(),
+##   typecode = col_character(),
+##   origin = col_character(),
+##   destination = col_character(),
+##   firstseen = col_datetime(format = ""),
+##   lastseen = col_datetime(format = ""),
+##   day = col_datetime(format = ""),
+##   latitude_1 = col_double(),
+##   longitude_1 = col_double(),
+##   altitude_1 = col_double(),
+##   latitude_2 = col_double(),
+##   longitude_2 = col_double(),
+##   altitude_2 = col_double()
+## )
+## 
+## 
+## -- Column specification --------------------------------------------------------
+## cols(
+##   callsign = col_character(),
+##   number = col_character(),
+##   icao24 = col_character(),
+##   registration = col_character(),
+##   typecode = col_character(),
+##   origin = col_character(),
+##   destination = col_character(),
+##   firstseen = col_datetime(format = ""),
+##   lastseen = col_datetime(format = ""),
+##   day = col_datetime(format = ""),
+##   latitude_1 = col_double(),
+##   longitude_1 = col_double(),
+##   altitude_1 = col_double(),
+##   latitude_2 = col_double(),
+##   longitude_2 = col_double(),
+##   altitude_2 = col_double()
+## )
+## 
+## 
+## -- Column specification --------------------------------------------------------
+## cols(
+##   callsign = col_character(),
+##   number = col_character(),
+##   icao24 = col_character(),
+##   registration = col_character(),
+##   typecode = col_character(),
+##   origin = col_character(),
+##   destination = col_character(),
+##   firstseen = col_datetime(format = ""),
+##   lastseen = col_datetime(format = ""),
+##   day = col_datetime(format = ""),
+##   latitude_1 = col_double(),
+##   longitude_1 = col_double(),
+##   altitude_1 = col_double(),
+##   latitude_2 = col_double(),
+##   longitude_2 = col_double(),
+##   altitude_2 = col_double()
+## )
+## 
+## 
+## -- Column specification --------------------------------------------------------
+## cols(
+##   callsign = col_character(),
+##   number = col_character(),
+##   icao24 = col_character(),
+##   registration = col_character(),
+##   typecode = col_character(),
+##   origin = col_character(),
+##   destination = col_character(),
+##   firstseen = col_datetime(format = ""),
+##   lastseen = col_datetime(format = ""),
+##   day = col_datetime(format = ""),
+##   latitude_1 = col_double(),
+##   longitude_1 = col_double(),
+##   altitude_1 = col_double(),
+##   latitude_2 = col_double(),
+##   longitude_2 = col_double(),
+##   altitude_2 = col_double()
+## )
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#Selecting relevant variables}
+
+\NormalTok{fb }\OtherTok{\textless{}{-}}\NormalTok{ open\_sky }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{transmute}\NormalTok{(}\AttributeTok{ADEP =}\NormalTok{ origin, }\AttributeTok{ADES =}\NormalTok{ destination, }\AttributeTok{TYPE =} \FunctionTok{as.factor}\NormalTok{(typecode), }\AttributeTok{DATE =} \FunctionTok{date}\NormalTok{(day), }\AttributeTok{CALL =}\NormalTok{ callsign}
+                             \CommentTok{\#, ACFT\_ID = aircraft\_uid}
+\NormalTok{                             )}
+
+
+\CommentTok{\#Easily "dropping NA\textquotesingle{}s\# {-} this can be further sofisticated}
+
+\NormalTok{fb1 }\OtherTok{\textless{}{-}}\NormalTok{ fb }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{drop\_na}\NormalTok{()}
+\NormalTok{fb1}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 3,338,649 x 5
+##    ADEP  ADES  TYPE  DATE       CALL   
+##    <chr> <chr> <fct> <date>     <chr>  
+##  1 KJFK  LSGG  B788  2021-01-01 ETH726 
+##  2 KMIA  KMIA  B763  2021-01-01 LCO1108
+##  3 VHHH  71KY  G650  2021-01-01 ABW9515
+##  4 OMDM  YSSY  A343  2021-01-01 ASY052 
+##  5 KLAX  EDDF  B77L  2021-01-01 CSN461 
+##  6 EBLG  EBLG  B744  2021-01-01 ATG6652
+##  7 KORD  EHAM  B77L  2021-01-01 CSN5203
+##  8 FAOR  OMDB  B738  2021-01-01 KQA304 
+##  9 YSSY  OMDB  B77W  2021-01-01 UAE415 
+## 10 YSSY  WSSS  A332  2021-01-01 ALK302 
+## # ... with 3,338,639 more rows
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#Joining to ADEP}
+\NormalTok{fb2 }\OtherTok{\textless{}{-}} \FunctionTok{left\_join}\NormalTok{(fb1, apt\_countries, }\AttributeTok{by =} \FunctionTok{c}\NormalTok{(}\StringTok{"ADEP"} \OtherTok{=} \StringTok{"ICAO"}\NormalTok{)) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{mutate}\NormalTok{(}\AttributeTok{ADEP\_CTRY =}\NormalTok{ CTRY, }\AttributeTok{.keep =} \StringTok{"unused"}\NormalTok{, }\AttributeTok{.after =}\NormalTok{ ADEP)}
+\CommentTok{\#Joining to ADES}
+\NormalTok{fb3 }\OtherTok{\textless{}{-}} \FunctionTok{left\_join}\NormalTok{(fb2, apt\_countries, }\AttributeTok{by =} \FunctionTok{c}\NormalTok{(}\StringTok{"ADES"} \OtherTok{=} \StringTok{"ICAO"}\NormalTok{)) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{mutate}\NormalTok{(}\AttributeTok{ADES\_CTRY =}\NormalTok{ CTRY, }\AttributeTok{.keep =} \StringTok{"unused"}\NormalTok{, }\AttributeTok{.after =}\NormalTok{ ADES)}
+
+\CommentTok{\#Check  NA\textquotesingle{}s}
+\FunctionTok{colSums}\NormalTok{(}\FunctionTok{is.na}\NormalTok{(fb3))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##      ADEP ADEP_CTRY      ADES ADES_CTRY      TYPE      DATE      CALL 
+##         0      1271         0      1446         0         0         0
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Very few NA\textquotesingle{}s {-} it\textquotesingle{}s safe to drop and factor now}
+
+\NormalTok{fb4 }\OtherTok{\textless{}{-}}\NormalTok{ fb3 }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{drop\_na}\NormalTok{() }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{mutate}\NormalTok{(}\AttributeTok{ADEP\_CTRY =} \FunctionTok{as.factor}\NormalTok{(ADEP\_CTRY), }\AttributeTok{ADES\_CTRY =} \FunctionTok{as.factor}\NormalTok{(ADES\_CTRY))}
+
+\CommentTok{\#NOTE: Here we can adjust the European countries that comprises EU region by editing the "eur\_countries" vector:}
+\CommentTok{\# Currently in european countries: "GB" "AD" "ES" "AL" "XK" "AT" "BA" "BE" "BG" "IS" "BY" "UA" "CH" "CZ" "SK" "DE" "RU" "DK" "HR" "EE" "FI" "GG" "JE" "IM" "NL" "IE" "FO" "LU" "NO" "PL" "PT" "SE" "LV" "LT" "FR" "GR" "HU" "IT" "LI" "SI" "MT" "MC" "RO" "TR" "MD" "MK" "GI" "RS" "ME" "SM" "GE" "VA"}
+
+\NormalTok{base\_dataset }\OtherTok{\textless{}{-}}\NormalTok{ fb4 }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{mutate}\NormalTok{(}\AttributeTok{ADEP\_REG =} \FunctionTok{as.factor}\NormalTok{(}\FunctionTok{case\_when}\NormalTok{(ADEP\_CTRY }\SpecialCharTok{==} \StringTok{"US"} \SpecialCharTok{\textasciitilde{}} \StringTok{"US"}\NormalTok{,}
+\NormalTok{                                    ADEP\_CTRY }\SpecialCharTok{==} \StringTok{"BR"} \SpecialCharTok{\textasciitilde{}} \StringTok{"BR"}\NormalTok{,}
+\NormalTok{                                    ADEP\_CTRY }\SpecialCharTok{\%in\%}\NormalTok{ eur\_countries }\SpecialCharTok{\textasciitilde{}} \StringTok{"EU"}\NormalTok{,}
+                                    \ConstantTok{TRUE} \SpecialCharTok{\textasciitilde{}} \StringTok{"Other"}\NormalTok{)), }\AttributeTok{.after =}\NormalTok{ ADEP\_CTRY) }\SpecialCharTok{\%\textgreater{}\%}
+                \FunctionTok{mutate}\NormalTok{(}\AttributeTok{ADES\_REG =} \FunctionTok{as.factor}\NormalTok{(}\FunctionTok{case\_when}\NormalTok{(ADES\_CTRY }\SpecialCharTok{==} \StringTok{"US"} \SpecialCharTok{\textasciitilde{}} \StringTok{"US"}\NormalTok{,}
+\NormalTok{                                    ADES\_CTRY }\SpecialCharTok{==} \StringTok{"BR"} \SpecialCharTok{\textasciitilde{}} \StringTok{"BR"}\NormalTok{,}
+\NormalTok{                                    ADES\_CTRY }\SpecialCharTok{\%in\%}\NormalTok{ eur\_countries }\SpecialCharTok{\textasciitilde{}} \StringTok{"EU"}\NormalTok{,}
+                                    \ConstantTok{TRUE} \SpecialCharTok{\textasciitilde{}} \StringTok{"Other"}\NormalTok{)), }\AttributeTok{.after =}\NormalTok{ ADES\_CTRY)}
+\FunctionTok{colSums}\NormalTok{(}\FunctionTok{is.na}\NormalTok{(base\_dataset))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##      ADEP ADEP_CTRY  ADEP_REG      ADES ADES_CTRY  ADES_REG      TYPE      DATE 
+##         0         0         0         0         0         0         0         0 
+##      CALL 
+##         0
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# No NA\textquotesingle{}s {-} yaaayy!!}
+\FunctionTok{glimpse}\NormalTok{(base\_dataset)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Rows: 3,336,679
+## Columns: 9
+## $ ADEP      <chr> "KJFK", "KMIA", "VHHH", "OMDM", "KLAX", "EBLG", "KORD", "FAO~
+## $ ADEP_CTRY <fct> US, US, HK, AE, US, BE, US, ZA, AU, AU, TW, NL, TW, US, QA, ~
+## $ ADEP_REG  <fct> US, US, Other, Other, US, EU, US, Other, Other, Other, Other~
+## $ ADES      <chr> "LSGG", "KMIA", "71KY", "YSSY", "EDDF", "EBLG", "EHAM", "OMD~
+## $ ADES_CTRY <fct> CH, US, US, AU, DE, BE, NL, AE, AE, SG, US, PE, CA, AU, QA, ~
+## $ ADES_REG  <fct> EU, US, US, Other, EU, EU, EU, Other, Other, Other, US, Othe~
+## $ TYPE      <fct> B788, B763, G650, A343, B77L, B744, B77L, B738, B77W, A332, ~
+## $ DATE      <date> 2021-01-01, 2021-01-01, 2021-01-01, 2021-01-01, 2021-01-01,~
+## $ CALL      <chr> "ETH726", "LCO1108", "ABW9515", "ASY052", "CSN461", "ATG6652~
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{summary}\NormalTok{(base\_dataset)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##      ADEP             ADEP_CTRY        ADEP_REG           ADES          
+##  Length:3336679     US     :2225791   BR   :  35791   Length:3336679    
+##  Class :character   AU     : 127008   EU   : 596507   Class :character  
+##  Mode  :character   DE     : 109611   Other: 478590   Mode  :character  
+##                     GB     :  84635   US   :2225791                     
+##                     FR     :  64874                                     
+##                     CA     :  45627                                     
+##                     (Other): 679133                                     
+##    ADES_CTRY        ADES_REG            TYPE              DATE           
+##  US     :2223845   BR   :  35937   B738   : 356779   Min.   :2021-01-01  
+##  AU     : 127206   EU   : 597541   A320   : 234165   1st Qu.:2021-02-14  
+##  DE     : 109350   Other: 479356   B737   : 205056   Median :2021-03-26  
+##  GB     :  84605   US   :2223845   A321   : 135527   Mean   :2021-03-22  
+##  FR     :  65219                   A319   : 118359   3rd Qu.:2021-04-29  
+##  CA     :  45727                   E75L   : 112965   Max.   :2021-05-30  
+##  (Other): 680727                   (Other):2173828                       
+##      CALL          
+##  Length:3336679    
+##  Class :character  
+##  Mode  :character  
+##                    
+##                    
+##                    
+## 
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#quick peek}
+\NormalTok{base\_dataset}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 3,336,679 x 9
+##    ADEP  ADEP_CTRY ADEP_REG ADES  ADES_CTRY ADES_REG TYPE  DATE       CALL   
+##    <chr> <fct>     <fct>    <chr> <fct>     <fct>    <fct> <date>     <chr>  
+##  1 KJFK  US        US       LSGG  CH        EU       B788  2021-01-01 ETH726 
+##  2 KMIA  US        US       KMIA  US        US       B763  2021-01-01 LCO1108
+##  3 VHHH  HK        Other    71KY  US        US       G650  2021-01-01 ABW9515
+##  4 OMDM  AE        Other    YSSY  AU        Other    A343  2021-01-01 ASY052 
+##  5 KLAX  US        US       EDDF  DE        EU       B77L  2021-01-01 CSN461 
+##  6 EBLG  BE        EU       EBLG  BE        EU       B744  2021-01-01 ATG6652
+##  7 KORD  US        US       EHAM  NL        EU       B77L  2021-01-01 CSN5203
+##  8 FAOR  ZA        Other    OMDB  AE        Other    B738  2021-01-01 KQA304 
+##  9 YSSY  AU        Other    OMDB  AE        Other    B77W  2021-01-01 UAE415 
+## 10 YSSY  AU        Other    WSSS  SG        Other    A332  2021-01-01 ALK302 
+## # ... with 3,336,669 more rows
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#}
+\CommentTok{\#}
+\CommentTok{\#}
+\CommentTok{\#NOW IT\textquotesingle{}S TIME TO LOOP TO OTHER MONTHS AND BIND THEM ALL!}
+\CommentTok{\#}
+\CommentTok{\#}
+\CommentTok{\#}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#quick first look}
+\NormalTok{temp1 }\OtherTok{\textless{}{-}}\NormalTok{ base\_dataset }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{group\_by}\NormalTok{(DATE, ADEP\_REG, ADES\_REG) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{summarize}\NormalTok{(}\AttributeTok{FLIGHTS =} \FunctionTok{n}\NormalTok{(), }\AttributeTok{.groups =} \StringTok{"drop"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(ADEP\_REG }\SpecialCharTok{\%in\%} \FunctionTok{c}\NormalTok{(}\StringTok{"BR"}\NormalTok{, }\StringTok{"EU"}\NormalTok{), ADES\_REG  }\SpecialCharTok{\%in\%} \FunctionTok{c}\NormalTok{(}\StringTok{"BR"}\NormalTok{, }\StringTok{"EU"}\NormalTok{)) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{ROUTE =} \FunctionTok{paste}\NormalTok{(ADEP\_REG, ADES\_REG, }\AttributeTok{sep =} \StringTok{"{-}"}\NormalTok{), }\AttributeTok{.keep =} \StringTok{"unused"}\NormalTok{, }\AttributeTok{.before =} \StringTok{"FLIGHTS"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{pivot\_wider}\NormalTok{(}\AttributeTok{names\_from =}\NormalTok{ ROUTE, }\AttributeTok{values\_from =}\NormalTok{ FLIGHTS) }
+\NormalTok{temp1}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 149 x 5
+##    DATE       `BR-BR` `BR-EU` `EU-BR` `EU-EU`
+##    <date>       <int>   <int>   <int>   <int>
+##  1 2021-01-01     189       8       7    1792
+##  2 2021-01-02     265       7      10    3088
+##  3 2021-01-03     264      12       6    3721
+##  4 2021-01-04     273       6      11    3446
+##  5 2021-01-05     320       5      11    3068
+##  6 2021-01-06     262      10       7    2930
+##  7 2021-01-07     288       8      11    3088
+##  8 2021-01-08     266       3       1    3343
+##  9 2021-01-09     253       7      11    2695
+## 10 2021-01-10     233       7       7    3371
+## # ... with 139 more rows
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#First stab at different levels of traffic}
+
+\NormalTok{n }\OtherTok{\textless{}{-}} \FloatTok{0.5}
+\NormalTok{temp1 }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ DATE)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{y =} \StringTok{\textasciigrave{}}\AttributeTok{EU{-}EU}\StringTok{\textasciigrave{}}\NormalTok{, }\AttributeTok{color =} \StringTok{\textasciigrave{}}\AttributeTok{EU{-}EU}\StringTok{\textasciigrave{}} \SpecialCharTok{\textgreater{}} \FunctionTok{quantile}\NormalTok{(}\StringTok{\textasciigrave{}}\AttributeTok{EU{-}EU}\StringTok{\textasciigrave{}}\NormalTok{[}\FunctionTok{month}\NormalTok{(DATE) }\SpecialCharTok{\%in\%} \DecValTok{1}\SpecialCharTok{:}\DecValTok{2}\NormalTok{], }\AttributeTok{probs =}\NormalTok{ n)), }\AttributeTok{shape =} \DecValTok{4}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{geom\_point}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{y =} \StringTok{\textasciigrave{}}\AttributeTok{BR{-}BR}\StringTok{\textasciigrave{}}\NormalTok{, }\AttributeTok{color =} \StringTok{\textasciigrave{}}\AttributeTok{BR{-}BR}\StringTok{\textasciigrave{}} \SpecialCharTok{\textgreater{}} \FunctionTok{quantile}\NormalTok{(}\StringTok{\textasciigrave{}}\AttributeTok{BR{-}BR}\StringTok{\textasciigrave{}}\NormalTok{[}\FunctionTok{month}\NormalTok{(DATE) }\SpecialCharTok{\%in\%} \DecValTok{1}\SpecialCharTok{:}\DecValTok{2}\NormalTok{], }\AttributeTok{probs =}\NormalTok{ n)), }\AttributeTok{shape =} \DecValTok{1}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{labs}\NormalTok{(}\AttributeTok{y  =} \StringTok{"Flights"}\NormalTok{) }\SpecialCharTok{+} 
+  \FunctionTok{theme}\NormalTok{(}\AttributeTok{legend.position =} \StringTok{"bottom"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{paper_files/figure-latex/unnamed-chunk-6-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#Normalized by the median of the last 3 months of the dataset}
+\NormalTok{temp2 }\OtherTok{\textless{}{-}}\NormalTok{ temp1 }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{pivot\_longer}\NormalTok{(}\AttributeTok{cols =} \DecValTok{2}\SpecialCharTok{:}\DecValTok{5}\NormalTok{, }\AttributeTok{names\_to =} \StringTok{"ROUTE"}\NormalTok{, }\AttributeTok{values\_to =} \StringTok{"FLIGHTS"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{group\_by}\NormalTok{(ROUTE) }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{mutate}\NormalTok{(}\AttributeTok{MOVING\_MEDIAN =} \FunctionTok{quantile}\NormalTok{(FLIGHTS[}\FunctionTok{month}\NormalTok{(DATE) }\SpecialCharTok{\%in\%} \FunctionTok{month}\NormalTok{(}\FunctionTok{last}\NormalTok{(DATE))}\SpecialCharTok{{-}}\DecValTok{2}\SpecialCharTok{:}\FunctionTok{month}\NormalTok{(}\FunctionTok{last}\NormalTok{(DATE))], }\AttributeTok{probs =} \FloatTok{0.5}\NormalTok{), }\AttributeTok{NORM\_FLTS =}\NormalTok{ FLIGHTS}\SpecialCharTok{/}\NormalTok{MOVING\_MEDIAN)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning in month(DATE) %in% month(last(DATE)) - 2:month(last(DATE)): Länge des längeren Objektes
+##       ist kein Vielfaches der Länge des kürzeren Objektes
+
+## Warning in month(DATE) %in% month(last(DATE)) - 2:month(last(DATE)): Länge des längeren Objektes
+##       ist kein Vielfaches der Länge des kürzeren Objektes
+
+## Warning in month(DATE) %in% month(last(DATE)) - 2:month(last(DATE)): Länge des längeren Objektes
+##       ist kein Vielfaches der Länge des kürzeren Objektes
+
+## Warning in month(DATE) %in% month(last(DATE)) - 2:month(last(DATE)): Länge des längeren Objektes
+##       ist kein Vielfaches der Länge des kürzeren Objektes
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{temp2}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 596 x 5
+## # Groups:   ROUTE [4]
+##    DATE       ROUTE FLIGHTS MOVING_MEDIAN NORM_FLTS
+##    <date>     <chr>   <int>         <dbl>     <dbl>
+##  1 2021-01-01 BR-BR     189          214.     0.881
+##  2 2021-01-01 BR-EU       8            7      1.14 
+##  3 2021-01-01 EU-BR       7            9      0.778
+##  4 2021-01-01 EU-EU    1792         3397      0.528
+##  5 2021-01-02 BR-BR     265          214.     1.24 
+##  6 2021-01-02 BR-EU       7            7      1    
+##  7 2021-01-02 EU-BR      10            9      1.11 
+##  8 2021-01-02 EU-EU    3088         3397      0.909
+##  9 2021-01-03 BR-BR     264          214.     1.23 
+## 10 2021-01-03 BR-EU      12            7      1.71 
+## # ... with 586 more rows
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{temp2 }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{ggplot}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{x =}\NormalTok{ DATE)) }\SpecialCharTok{+}
+  \FunctionTok{geom\_line}\NormalTok{(}\FunctionTok{aes}\NormalTok{(}\AttributeTok{y =}\NormalTok{ NORM\_FLTS, }\AttributeTok{color =}\NormalTok{ ROUTE)) }\SpecialCharTok{+}
+  \FunctionTok{theme\_minimal}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{paper_files/figure-latex/unnamed-chunk-6-2.pdf}
+
+1.2.2
 
 \hypertarget{conclusion}{%
 \section{Conclusion}\label{conclusion}}
@@ -638,6 +1131,9 @@ to be developed
 
 \hypertarget{refs}{}
 \begin{CSLReferences}{1}{0}
+\leavevmode\hypertarget{ref-xavier_olive_2021_4893103}{}%
+Olive, Xavier, Martin Strohmeier, and Jannis Lübbe. 2021. {``{Crowdsourced air traffic data from The OpenSky Network 2020}.''} Zenodo. \url{https://doi.org/10.5281/zenodo.4893103}.
+
 \leavevmode\hypertarget{ref-strohmeier_crowdsourced_2021}{}%
 Strohmeier, Martin, Xavier Olive, Jannis Lübbe, Matthias Schäfer, and Vincent Lenders. 2021. {``Crowdsourced Air Traffic Data from {OpenSky Network} 2019-2020.''} \emph{Earth Systems Science Data} 13: 357--66. \url{https://doi.org/10.5194/essd-13-357-2021}.
 

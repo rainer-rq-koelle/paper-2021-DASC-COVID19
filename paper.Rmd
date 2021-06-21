@@ -43,7 +43,15 @@ library(stats)
 library(zoo)
 ```
 
-```{r}
+```{r globalstuff, message=FALSE}
+## set bookdown specs/defaults for high quality output
+#---------- check for the settings
+
+## theme default for ggplot
+theme_set(
+  theme_minimal()
+  )
+
 ###Preparatory codes
 
 #If someone needs filters below, here we can control any selective sample
@@ -171,19 +179,33 @@ Koelle (2015): proposes to address resilience as a situation management and stat
 
 # Method/Materials
 
-
 A mixed-method approach, based on:
 
-  a) to answer RQ1.1, a qualitative analysis of previous models to develop acute low-demand as a disturbance
-  b) to answer RQ1.2, a quantitative analysis of open data, to observe (or not) different levels/stages of stress/recovery, which could indicate different "more" or "less" resilience to the disturbances
+a)  to answer RQ1.1, a qualitative analysis of previous models to develop acute low-demand as a disturbance
+b)  to answer RQ1.2, a quantitative analysis of open data, to observe (or not) different levels/stages of stress/recovery, which could indicate different "more" or "less" resilience to the disturbances
 
 ## Open-source Data
 
+This study builds on publicly available data. Opensky Network collects crowdsourced air traffic data from more than 2500 feeders (sensor stations). To support the process of illustrating and studying the impact of the COVID pandemic on air traffic demand, a flight-by-flight dataset is provided on a monthly basis [@xavier_olive_2021_4893103]. The data spans the period since 1. January 2019. Fig. \@ref(fig:osndaily) shows the number of daily flights tracked by Opensky Network globally.
+
+<!-- add some data set description, e.g. number of files, etc -->
+
+(ref:osndaily) Daily flights tracked by Opensky Network
+
+```{r osndaily, fig.cap="(ref:osndaily)", message=FALSE}
+daily_tfc <- read_csv("./data/daily_osn.csv")
+
+daily_tfc %>%
+  ggplot(mapping = aes(x = DATE, y = FLTS)) +
+  geom_line() +
+  labs(x = NULL, y = "flights")
+```
+
 # Results/Discussion
 
-1.1 
+1.1
 
-a) Resilience can be measured as a function of time - the smaller the relationship between time of stress and the time of recovery, more resilient a system is.
+a)  Resilience can be measured as a function of time - the smaller the relationship between time of stress and the time of recovery, more resilient a system is.
 
 1.2 how to use open data to "see" resilience?
 
@@ -201,7 +223,9 @@ open_sky <- map_dfr(file_names, read_csv)
 
 #Selecting relevant variables
 
-fb <- open_sky %>% transmute(ADEP = origin, ADES = destination, TYPE = as.factor(typecode), DATE = date(day), CALL = callsign, ACFT_ID = aircraft_uid)
+fb <- open_sky %>% transmute(ADEP = origin, ADES = destination, TYPE = as.factor(typecode), DATE = date(day), CALL = callsign
+                             #, ACFT_ID = aircraft_uid
+                             )
 
 
 #Easily "dropping NA's# - this can be further sofisticated
@@ -209,7 +233,6 @@ fb <- open_sky %>% transmute(ADEP = origin, ADES = destination, TYPE = as.factor
 fb1 <- fb %>% drop_na()
 fb1
 ```
-
 
 ```{r}
 #Joining to ADEP
@@ -253,7 +276,6 @@ base_dataset
 #
 ```
 
-
 ```{r}
 #quick first look
 temp1 <- base_dataset %>% group_by(DATE, ADEP_REG, ADES_REG) %>% summarize(FLIGHTS = n(), .groups = "drop") %>%
@@ -284,8 +306,7 @@ temp2 %>% ggplot(aes(x = DATE)) +
 
 ```
 
-
-1.2.2 
+1.2.2
 
 # Conclusion
 
