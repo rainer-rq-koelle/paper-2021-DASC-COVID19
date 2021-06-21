@@ -271,8 +271,8 @@ temp1 %>% ggplot(aes(x = DATE)) +
   labs(y  = "Flights") + 
   theme(legend.position = "bottom")
 
-#Normalized by the median of the last 3 months
-temp2 <- temp1 %>% pivot_longer(cols = 2:5, names_to = "ROUTE", values_to = "FLIGHTS") %>% group_by(ROUTE) %>% mutate(MOVING_MEDIAN = quantile(FLIGHTS[month(DATE) %in% month(last(DATE))-1:month(last(DATE))], probs = 0.5), NORM_FLTS = FLIGHTS/MOVING_MEDIAN)
+#Normalized by the median of the last 3 months of the dataset
+temp2 <- temp1 %>% pivot_longer(cols = 2:5, names_to = "ROUTE", values_to = "FLIGHTS") %>% group_by(ROUTE) %>% mutate(MOVING_MEDIAN = quantile(FLIGHTS[month(DATE) %in% month(last(DATE))-2:month(last(DATE))], probs = 0.5), NORM_FLTS = FLIGHTS/MOVING_MEDIAN)
 temp2
 
 temp2 %>% ggplot(aes(x = DATE)) +
