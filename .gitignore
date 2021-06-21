@@ -5,3 +5,5 @@
 
 # Fabio's stuff
 data-raw
+# ignore massive files of base data in ./data
+data/base_osn*
