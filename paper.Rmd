@@ -43,13 +43,31 @@ library(lubridate)
 ```
 
 ```{r}
+###Preparatory codes
+
 #If someone needs filters below, here we can control any selective sample
 #Filtering Brazilian and European data to reduce the sample (and csv) size
 #Currently, those filters are not in use in the code, they are here just in case.
-
 bra_10_apts <- c("SBBR", "SBGR", "SBSP", "SBKP", "SBRJ", "SBGL", "SBCF", "SBSV", "SBPA", "SBCT")
 eur_apts <- c("EHAM","LFPG","EGLL","EDDF","EDDM","LEMD","LIRF","LEBL","EGKK","LSZH")
 study_airports <- c(bra_10_apts, eur_apts)
+
+###Preparing airport file
+#NOTE: the airports.csv file below is the downloaded file from www.ourairports.org.
+airports <- read_csv("data-raw/airports.csv") %>% mutate(continent = case_when(is.na(continent) ~ "NA", TRUE ~ continent))
+
+#There are missing airports and too much variables
+apt_countries <- airports %>% transmute(ICAO = ident, CTRY = iso_country) %>% add_row(ICAO  = c("SPJC", "YBMC", "LSZM", "YSCH", "EPLB", "K3M3", "VV01", "SC28", "CWF2", "EHDB", "74XA", "HE13"), CTRY  = c("PE", "AU", "FR", "AU", "PL", "US", "VN", "US", "CA", "NL", "US", "EG"))
+
+#If you need to write
+#write_csv(apt_countries, "./data/apt_countries.csv")
+#apt_countries is ready.
+
+# Associate the regions
+a <- airports %>% filter(continent == "EU") %>% select(iso_country) %>% unique()
+eur_countries <- a$iso_country
+#eur_countries is ready.
+
 ```
 
 ```{r}
@@ -169,6 +187,7 @@ a) Resilience can be measured as a function of time - the smaller the relationsh
 1.2 how to use open data to "see" resilience?
 
 1.2.1 Gather and prepare data
+
 ```{r}
 #Reading raw data
 
@@ -192,18 +211,6 @@ fb1
 
 
 ```{r}
-#Joining countries and regions
-# NOTE: the airports.csv file below is the downloaded file from www.ourairports.org.
-
-airports <- read_csv("data-raw/airports.csv") %>% mutate(continent = case_when(is.na(continent) ~ "NA", TRUE ~ continent))
-apt_countries <- airports %>% transmute(ICAO = ident, CTRY = iso_country)
-
-#There are missing airports
-apt_countries <- apt_countries %>% add_row(ICAO  = c("SPJC", "YBMC", "LSZM", "YSCH", "EPLB", "K3M3", "VV01", "SC28", "CWF2", "EHDB", "74XA", "HE13"), CTRY  = c("PE", "AU", "FR", "AU", "PL", "US", "VN", "US", "CA", "NL", "US", "EG"))
-
-#If you need to write
-#write_csv(apt_countries, "./data/apt_countries.csv")
-
 #Joining to ADEP
 fb2 <- left_join(fb1, apt_countries, by = c("ADEP" = "ICAO")) %>% mutate(ADEP_CTRY = CTRY, .keep = "unused", .after = ADEP)
 #Joining to ADES
@@ -214,10 +221,6 @@ colSums(is.na(fb3))
 # Very few NA's - it's safe to drop and factor now
 
 fb4 <- fb3 %>% drop_na() %>% mutate(ADEP_CTRY = as.factor(ADEP_CTRY), ADES_CTRY = as.factor(ADES_CTRY))
-
-# Associate the regions
-a <- airports %>% filter(continent == "EU") %>% select(iso_country) %>% unique()
-eur_countries <- a$iso_country
 
 #NOTE: Here we can adjust the European countries that comprises EU region by editing the "eur_countries" vector:
 # Currently in european countries: "GB" "AD" "ES" "AL" "XK" "AT" "BA" "BE" "BG" "IS" "BY" "UA" "CH" "CZ" "SK" "DE" "RU" "DK" "HR" "EE" "FI" "GG" "JE" "IM" "NL" "IE" "FO" "LU" "NO" "PL" "PT" "SE" "LV" "LT" "FR" "GR" "HU" "IT" "LI" "SI" "MT" "MC" "RO" "TR" "MD" "MK" "GI" "RS" "ME" "SM" "GE" "VA"
