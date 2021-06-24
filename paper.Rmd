@@ -211,7 +211,7 @@ a)  Resilience can be measured as a function of time - the smaller the relations
 
 1.2.1 Gather and prepare data
 
-```{r}
+```{r eval=FALSE, include=FALSE}
 #Reading raw data
 
 source("./R/list_apt_files.R")
@@ -234,7 +234,7 @@ fb1 <- fb %>% drop_na()
 fb1
 ```
 
-```{r}
+```{r, eval=FALSE, include=FALSE}
 #Joining to ADEP
 fb2 <- left_join(fb1, apt_countries, by = c("ADEP" = "ICAO")) %>% mutate(ADEP_CTRY = CTRY, .keep = "unused", .after = ADEP)
 #Joining to ADES
@@ -266,23 +266,21 @@ summary(base_dataset)
 
 ```{r}
 #quick peek
-base_dataset
-#
-#
-#
-#NOW IT'S TIME TO LOOP TO OTHER MONTHS AND BIND THEM ALL!
-#
-#
-#
-```
+#Read "x0_data-preparation.Rmd" first, then
+full_dataset
 
-```{r}
-#quick first look
-temp1 <- base_dataset %>% group_by(DATE, ADEP_REG, ADES_REG) %>% summarize(FLIGHTS = n(), .groups = "drop") %>%
+temp <- full_dataset %>% group_by(DATE, ADEP_REG, ADES_REG) %>% summarize(FLIGHTS = n(), .groups = "drop") %>%
   filter(ADEP_REG %in% c("BR", "EU"), ADES_REG  %in% c("BR", "EU")) %>%
   mutate(ROUTE = paste(ADEP_REG, ADES_REG, sep = "-"), .keep = "unused", .before = "FLIGHTS") %>%
   pivot_wider(names_from = ROUTE, values_from = FLIGHTS) 
+temp
+
+#First Look
+temp1 <- full_dataset %>% group_by(DATE, ADEP_REG, ADES_REG) %>% summarize(FLIGHTS = n()) %>% mutate(ROUTE = paste(ADEP_REG, ADES_REG, sep = "-"), .keep = "unused")
 temp1
+
+temp1 %>% ggplot(aes(x = DATE)) +
+  geom_line(aes(y = (FLIGHTS), color = ROUTE))
 
 #First stab at different levels of traffic
 
@@ -294,7 +292,8 @@ temp1 %>% ggplot(aes(x = DATE)) +
   theme(legend.position = "bottom")
 
 #Normalized by the median of the last 3 months of the dataset
-temp2 <- temp1 %>% pivot_longer(cols = 2:5, names_to = "ROUTE", values_to = "FLIGHTS") %>% group_by(ROUTE) %>% mutate(MOVING_MEDIAN = quantile(FLIGHTS[month(DATE) %in% month(last(DATE))-2:month(last(DATE))], probs = 0.5), NORM_FLTS = FLIGHTS/MOVING_MEDIAN)
+temp1 %>% pivot_longer(cols = 2:5, names_to = "ROUTE", values_to = "FLIGHTS") %>% group_by(ROUTE) %>%
+  mutate(MOVING_MEDIAN = quantile(FLIGHTS[month(DATE) %in% month(last(DATE))-2:month(last(DATE))], probs = 0.5), NORM_FLTS = FLIGHTS/MOVING_MEDIAN)
 temp2
 
 temp2 %>% ggplot(aes(x = DATE)) +

@@ -286,20 +286,19 @@ summary(base_dataset)
 
 ```
 
-```{r, eval=FALSE}
+```{r, eval=TRUE}
 #quick peek
-base_dataset
-#
-#
-#
-#NOW IT'S TIME TO LOOP TO OTHER MONTHS AND BIND THEM ALL!
-#
-#
-#
 
+base_filenames <- list.files("./data/", pattern = "base_osn_*")
+base_fullnames <- c(paste0("./data/", base_filenames))
+full_dataset <- map_dfr(base_fullnames, read_csv)
 
+```
+
+```{r}
 #quick first look
-temp1 <- base_dataset %>% group_by(DATE, ADEP_REG, ADES_REG) %>% summarize(FLIGHTS = n()) %>% mutate(ROUTE = paste(ADEP_REG, ADES_REG, sep = "-"), .keep = "unused")
+temp1 <- full_dataset %>% group_by(DATE, ADEP_REG, ADES_REG) %>% summarize(FLIGHTS = n()) %>% mutate(ROUTE = paste(ADEP_REG, ADES_REG, sep = "-"), .keep = "unused")
+temp1
 
 temp1 %>% ggplot(aes(x = DATE)) +
   geom_line(aes(y = (FLIGHTS), color = ROUTE))
