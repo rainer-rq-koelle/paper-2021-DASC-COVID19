@@ -2,10 +2,8 @@
 title: "Assessing the Global COVID19 Impact on Air Transport with Open Data"
 date: "`r format(Sys.Date(), '%d %B %Y')`"
 output:
-# failed to render and I could not finally track what kills the pdf
-#  bookdown::pdf_book:
-#    base_format: rticles::ieee_article
-  bookdown::word_document2
+  bookdown::pdf_book:
+     base_format: rticles::ieee_article
 bibliography: "DASC2021.bib"
 affiliation:
   ## use one only of the following
@@ -44,18 +42,17 @@ library(stats)
 library(zoo)
 ```
 
-```{r, echo=FALSE, message=FALSE}
+```{r globalstuff, message=FALSE}
 ## set bookdown specs/defaults for high quality output
 knitr::opts_chunk$set(
    echo = FALSE, message = FALSE, warning = FALSE    # messages
   , dpi = 320               #, dev.args = list(type = "cairo") #
   , dev = "ragg_png"        # works better than cairo
-#  , fig.retina = 2         # !! throws error in reticles IEEE
-#  , fig.align = "center"   # !! throws error in reticles IEEE
-  , fig.show = "hold"          # positioning of figure
-  , fig.width = 6, fig.asp = 0.618
-#  , out.width = "95%"      # !! throws error in reticles IEEE
-)
+  , fig.retina = 2      # resolution and device
+#  , fig.align = "center", fig.show = "hold"          # positioning of figure
+#  , fig.width = 6, fig.asp = 0.618
+#  , out.width = "85%"                                # outside dim of figure
+                      )
 
 ## theme default for ggplot
 theme_set(
@@ -78,10 +75,41 @@ col_spec <- cols(
 ds  <- fns %>% map_dfr(.f = ~ read_csv(.x))
 ```
 
+```{r eval=FALSE}
+## CHECK WHAT CAN BE REMOVED FROM HERE AND IS NOW OUTSOURCED TO DATA PREP
+
+
+###Preparatory codes
+
+#If someone needs filters below, here we can control any selective sample
+#Filtering Brazilian and European data to reduce the sample (and csv) size
+#Currently, those filters are not in use in the code, they are here just in case.
+bra_10_apts <- c("SBBR", "SBGR", "SBSP", "SBKP", "SBRJ", "SBGL", "SBCF", "SBSV", "SBPA", "SBCT")
+eur_apts <- c("EHAM","LFPG","EGLL","EDDF","EDDM","LEMD","LIRF","LEBL","EGKK","LSZH")
+study_airports <- c(bra_10_apts, eur_apts)
+
+###Preparing airport file
+#NOTE: the airports.csv file below is the downloaded file from www.ourairports.org.
+airports <- read_csv("data-raw/airports.csv") %>% mutate(continent = case_when(is.na(continent) ~ "NA", TRUE ~ continent))
+
+#There are missing airports and too much variables
+apt_countries <- airports %>% transmute(ICAO = ident, CTRY = iso_country) %>% add_row(ICAO  = c("SPJC", "YBMC", "LSZM", "YSCH", "EPLB", "K3M3", "VV01", "SC28", "CWF2", "EHDB", "74XA", "HE13"), CTRY  = c("PE", "AU", "FR", "AU", "PL", "US", "VN", "US", "CA", "NL", "US", "EG"))
+
+#If you need to write
+#write_csv(apt_countries, "./data/apt_countries.csv")
+#apt_countries is ready.
+
+# Associate the regions
+a <- airports %>% filter(continent == "EU") %>% select(iso_country) %>% unique()
+eur_countries <- a$iso_country
+#eur_countries is ready.
+
+```
+
 ```{r}
-# CURRENT COMMENTS AND TO-DO'S
+#CURRENT COMMENTS AND TO-DO'S
 # I HAVE DOWNLOADED 3 FILES FOR NOW (APR/19, APR/2020, APR/2021), JUST TO START "TIDYING" AND EXPLORING.
-# IT'S IN THE DATA-RAW FOLDER (NOT SHARED WITH GITHUB), AS ALWAYS.
+#IT'S IN THE DATA-RAW FOLDER (NOT SHARED WITH GITHUB), AS ALWAYS.
 ```
 
 # Introduction
@@ -158,19 +186,7 @@ The contribution of this paper are
 
 ## COVID-19 & Air Transportation
 
-On 11. March 2020, the World Health Organisation reacted to the steadily increasing of infections and global spreach of a newly detected Corona-Virus by declaring a pandemic.
-
-<!-- TODO: add diagram about increasing COVID infections/deaths and/or potential waves0 -->
-
 ## Resilience
-
-Resilience is a well-researched topic. The term is used by a diverse set of domains, communities, and research areas. In consequence there exists an abundance of theoretical definitions in the literature and numerous concepts that emerge from theses definitions and expert domains.
-
-The term originates from physics and is nowadays used with reference to safety, security, environment and ecological systems, mental health/psychology, biological system, and others. Despite the varying contexts, across all of these disciplines the concept of resilience is closely related with the capability and ability of the focus of concern - typically the system or agent - to return to a stable state after a disruption impacted the original state.
-
-Recently, the term is also used frequently on the political and strategic level. Policymakers, operational experts, and academes concur that the concept of resilience plays a major role when addressing and assessing the extent to which organisations and systems are prepared and capable to respond to and recover from disruptions.
-
-Within air navigation, the term 'resilience' has been picked up by several communities, both operational and scientific.
 
 EUROCONTROL (2009): first definition of resilience in ATM context -- "Resilience is the intrinsic ability of a system to adjust its functioning prior to, during, or following changes and disturbances, so that it can sustain required operations under both expected and unexpected conditions".
 
@@ -183,16 +199,6 @@ Gluchshenko (2013): repeats the previous ideas and adds a performance-based appr
 Project Resilience 2050 (Jun/2012 + 43 months) -- includes the previous definitions and other technical tasks. However, it evolves the way to measure resilience. Now, not only the time of deviation and time of recovery is considered. The project measures it as the relative difference of rate of delays correlation, or R = (ax1 -- dx1)/dx1 -- it has no unit, it's the difference between two pearson correlations.
 
 Koelle (2015): proposes to address resilience as a situation management and state-oriented problem. Through two case studies, argued that "there is a lack of fit of the current operational ANS performance indicators to address impact of disruptions as they are primarily based on actual timestamps or transition times."
-
-<!-- provide a pointer hook to the current interest in studying resilience (again) -->
-
-The unprecedented decline in air transportation since March 2020 has triggered an increased interest in the topic. For example under the umbrella of the ICAO Global Air Navigation Plan Study Group, an expert team is currently working on refining the performance framework with a view to resilience. With a view to COVID, there is a dual interest in understanding resilience in air navigation/transportation:
-
--   political level: ADD SOME DESCRIPTION
-
--   operational level: ADD SOME DESCRIPTION
-
-This paper addresses the operational dimension. Being able to characterise resilience within the operational domain will enable to address the more strategic and political decision-making.
 
 ## \<if we need to fill space\> Crowd-Sourced Data Collection
 
@@ -207,7 +213,8 @@ b)  to answer RQ1.2, a quantitative analysis of open data, to observe (or not) d
 
 ## Open-source Data
 
-This study builds on publicly available data. Opensky Network collects crowdsourced air traffic data from more than 2500 feeders (sensor stations). To support the process of illustrating and studying the impact of the COVID pandemic on air traffic demand, a flight-by-flight dataset is provided on a monthly basis [@xavier_olive_2021_4893103]. The data spans the period since 1. January 2019. Fig. \@ref(fig:osndaily) shows the number of daily flights tracked by Opensky Network globally.
+This study builds on publicly available data. Opensky Network collects crowdsourced air traffic data from more than 2500 feeders (sensor stations). To support the process of illustrating and studying the impact of the COVID pandemic on air traffic demand, a flight-by-flight dataset is provided on a monthly basis [@xavier_olive_2021_4893103]. The data spans the period since 1. January 2019. 
+Fig. \@ref(fig:osndaily) shows the number of daily flights tracked by Opensky Network globally.
 
 <!-- add some data set description, e.g. number of files, etc -->
 
@@ -222,22 +229,6 @@ daily_tfc %>%
   labs(x = NULL, y = "flights")
 ```
 
-## Measuring Resilience
-
-The concept of resilience (and robustness) is intimately linked with the construct of disruptions.
-
-(ref:resiliencebasics) Resilience as a function of disturbance impact
-
-```{r resiliencebasics, fig.cap="(ref:resiliencebasics)"}
-knitr::include_graphics("figures/resilience-timeline.png")
-```
-
- Conceptually, resilience R can be measured as the observed loss in quality of service (performance) over the time to recovery, t1-t2, for a certain level of disruption. Thus, mathematically, this represents the area covered by
-
-$$\int_{a}^{b}[THR -LOS(t)]dt$$
-
-as presented in Fig. \@ref(fig:resiliencebasics) (LOS: loss of service / performance, THR: associated threshold).
-
 # Results/Discussion
 
 1.1
@@ -248,24 +239,110 @@ a)  Resilience can be measured as a function of time - the smaller the relations
 
 1.2.1 Gather and prepare data
 
-```{r, fig.cap="test"}
+```{r eval=FALSE, include=FALSE}
+#Reading raw data
+
+source("./R/list_apt_files.R")
+
+#Here I will assign only one month - "202105". If you want to include a full year, just assign year to "2021" or "2020". It works.
+year <- "2021"
+file_names <- list_apt_files(.year = year)
+open_sky <- map_dfr(file_names, read_csv)
+
+#Selecting relevant variables
+
+fb <- open_sky %>% transmute(ADEP = origin, ADES = destination, TYPE = as.factor(typecode), DATE = date(day), CALL = callsign
+                             #, ACFT_ID = aircraft_uid
+                             )
+
+
+#Easily "dropping NA's# - this can be further sofisticated
+
+fb1 <- fb %>% drop_na()
+fb1
+```
+
+```{r, eval=FALSE, include=FALSE}
+#Joining to ADEP
+fb2 <- left_join(fb1, apt_countries, by = c("ADEP" = "ICAO")) %>% mutate(ADEP_CTRY = CTRY, .keep = "unused", .after = ADEP)
+#Joining to ADES
+fb3 <- left_join(fb2, apt_countries, by = c("ADES" = "ICAO")) %>% mutate(ADES_CTRY = CTRY, .keep = "unused", .after = ADES)
+
+#Check  NA's
+colSums(is.na(fb3))
+# Very few NA's - it's safe to drop and factor now
+
+fb4 <- fb3 %>% drop_na() %>% mutate(ADEP_CTRY = as.factor(ADEP_CTRY), ADES_CTRY = as.factor(ADES_CTRY))
+
+#NOTE: Here we can adjust the European countries that comprises EU region by editing the "eur_countries" vector:
+# Currently in european countries: "GB" "AD" "ES" "AL" "XK" "AT" "BA" "BE" "BG" "IS" "BY" "UA" "CH" "CZ" "SK" "DE" "RU" "DK" "HR" "EE" "FI" "GG" "JE" "IM" "NL" "IE" "FO" "LU" "NO" "PL" "PT" "SE" "LV" "LT" "FR" "GR" "HU" "IT" "LI" "SI" "MT" "MC" "RO" "TR" "MD" "MK" "GI" "RS" "ME" "SM" "GE" "VA"
+
+base_dataset <- fb4 %>% mutate(ADEP_REG = as.factor(case_when(ADEP_CTRY == "US" ~ "US",
+                                    ADEP_CTRY == "BR" ~ "BR",
+                                    ADEP_CTRY %in% eur_countries ~ "EU",
+                                    TRUE ~ "Other")), .after = ADEP_CTRY) %>%
+                mutate(ADES_REG = as.factor(case_when(ADES_CTRY == "US" ~ "US",
+                                    ADES_CTRY == "BR" ~ "BR",
+                                    ADES_CTRY %in% eur_countries ~ "EU",
+                                    TRUE ~ "Other")), .after = ADES_CTRY)
+colSums(is.na(base_dataset))
+# No NA's - yaaayy!!
+glimpse(base_dataset)
+summary(base_dataset)
+
+```
+
+```{r}
 #quick peek
 #Read "x0_data-preparation.Rmd" first, then
-head(ds)
+ds
 
 temp <- ds %>% group_by(DATE, ADEP_REG, ADES_REG) %>% summarize(FLIGHTS = n(), .groups = "drop") %>%
   filter(ADEP_REG %in% c("BR", "EU"), ADES_REG  %in% c("BR", "EU")) %>%
   mutate(ROUTE = paste(ADEP_REG, ADES_REG, sep = "-"), .keep = "unused", .before = "FLIGHTS") %>%
   pivot_wider(names_from = ROUTE, values_from = FLIGHTS) 
-#head(temp)
+head(temp)
 
 #First Look
 temp1 <- ds %>% group_by(DATE, ADEP_REG, ADES_REG) %>% summarize(FLIGHTS = n()) %>% mutate(ROUTE = paste(ADEP_REG, ADES_REG, sep = "-"), .keep = "unused")
-#head(temp1)
+head(temp1)
 
 temp1 %>% ggplot(aes(x = DATE)) +
   geom_line(aes(y = (FLIGHTS), color = ROUTE))
 ```
+
+
+<!-- NEEDED TO INAVTIVATE THE FOLLOWING - I COULD NOT RECONSTRUCT IT -->
+
+```{r eval=FALSE}
+#First stab at different levels of traffic
+
+n <- 0.5
+temp1 %>% ggplot(aes(x = DATE)) +
+  geom_point(aes(y = `EU-EU`, color = `EU-EU` > quantile(`EU-EU`[month(DATE) %in% 1:2], probs = n)), shape = 4) +
+  geom_point(aes(y = `BR-BR`, color = `BR-BR` > quantile(`BR-BR`[month(DATE) %in% 1:2], probs = n)), shape = 1) +
+  labs(y  = "Flights") + 
+  theme(legend.position = "bottom")
+```
+
+<!-- needed to deactivate the following:
+* threw error with column 5
+* could not reconcile which operation would have created the 5th col
+-->
+
+```{r, eval=FALSE}
+#Normalized by the median of the last 3 months of the dataset
+temp1 %>% pivot_longer(cols = 2:5, names_to = "ROUTE", values_to = "FLIGHTS") %>%   
+  group_by(ROUTE) %>%
+  mutate(MOVING_MEDIAN = quantile(FLIGHTS[month(DATE) %in% month(last(DATE))-2:month(last(DATE))], probs = 0.5), NORM_FLTS = FLIGHTS/MOVING_MEDIAN)
+
+head(temp2)
+
+temp2 %>% ggplot(aes(x = DATE)) +
+  geom_line(aes(y = NORM_FLTS, color = ROUTE)) +
+  theme_minimal()
+```
+
 
 # Conclusion
 
