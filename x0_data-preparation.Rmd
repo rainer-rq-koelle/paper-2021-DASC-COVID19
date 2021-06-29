@@ -304,3 +304,24 @@ temp1 %>% ggplot(aes(x = DATE)) +
   geom_line(aes(y = (FLIGHTS), color = ROUTE))
 ```
 
+```{r}
+#THRESHOLD AT A FIXED QUANTILE PER YEAR
+ds1 <- full_dataset %>% group_by(YR = year(DATE), DATE) %>% summarize(N = n()) %>% mutate(THRESHOLD = quantile(N, probs = 0.7))
+ds1
+
+ds1 %>% ggplot(aes(x = DATE)) +
+  geom_line(aes(y = THRESHOLD)) +
+  geom_point(aes(y = N, color = N > THRESHOLD))
+
+#CHECK WEEKLY DISTRIBUTION
+ds2 <- ds1 %>% mutate(WEEK_DAY = wday(DATE, label = TRUE), W_END = WEEK_DAY %in% c("Sat", "Sun"))
+ds2
+
+ds2 %>% ggplot(aes(x = DATE)) +
+  geom_line(aes(y = N, color = W_END))
+
+ds2 %>% ggplot() +
+  geom_freqpoly(aes(x = N, color = W_END))
+```
+
+
