@@ -7,6 +7,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(lubridate)
+library(zoo)
 
 #Reading raw data
 ## todo: change utility function list_osn_files
@@ -304,9 +305,13 @@ temp1 %>% ggplot(aes(x = DATE)) +
   geom_line(aes(y = (FLIGHTS), color = ROUTE))
 ```
 
-```{r}
-#THRESHOLD AT A FIXED QUANTILE PER YEAR
-ds1 <- full_dataset %>% group_by(YR = year(DATE), DATE) %>% summarize(N = n()) %>% mutate(THRESHOLD = quantile(N, probs = 0.7))
+```{r, dpi=480}
+#THRESHOLD AT ROLLING QUANTILES PER YEAR
+#Please install the "roll" package.
+#install.packages("roll")
+library(roll)
+
+ds1 <- full_dataset %>% group_by(YR = year(DATE), DATE) %>% summarize(N = n(), .groups = "drop") %>% mutate(THRESHOLD = quantile(N, probs = 0.7))
 ds1
 
 ds1 %>% ggplot(aes(x = DATE)) +
@@ -315,12 +320,26 @@ ds1 %>% ggplot(aes(x = DATE)) +
 
 #CHECK WEEKLY DISTRIBUTION
 ds2 <- ds1 %>% mutate(WEEK_DAY = wday(DATE, label = TRUE), W_END = WEEK_DAY %in% c("Sat", "Sun"))
+uplim <- .95
+lowlim <- .20
+
+ds2 <- ds2 %>% mutate(MED = roll_quantile(N, width = 7, p = .50, min_obs = 7),
+                      UP_THR = roll_quantile(N, width = 180, p = uplim, min_obs = 7),
+                      LOW_THR = roll_quantile(N, width = 180, p = lowlim, min_obs = 7))
 ds2
 
 ds2 %>% ggplot(aes(x = DATE)) +
-  geom_line(aes(y = N, color = W_END))
+  geom_col(aes(y = MED, fill = !(MED < LOW_THR | MED > UP_THR))) +
+  geom_line(aes(y = UP_THR), color = "blue") +
+  geom_line(aes(y = LOW_THR), color = "red") +
+  scale_x_date(limits = c(as.Date("2019-10-01"), as.Date("2020-12-01")), date_breaks = "30 days", date_labels = "%b\n%y") +
+  labs(y = "7-day rolling median", x = NULL, fill = "Normal operation?",
+       title = "What is normal?",
+       subtitle = "Red line - Lower threshold; Blue line - upper threshold",
+       caption = "Lower threshold set to 20th percentile of the last 180 days;\nUpper threshold set to 95th percentile of the last 180 days"
+)
 
-ds2 %>% ggplot() +
+#ds2 %>% ggplot() +
   geom_freqpoly(aes(x = N, color = W_END))
 ```
 
