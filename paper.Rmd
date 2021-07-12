@@ -42,6 +42,7 @@ library(tidyverse)
 library(lubridate)
 library(stats)
 library(zoo)
+library(patchwork)
 
 # for corona data
 # install.packages("coronavirus"), but do not load it!
@@ -350,19 +351,23 @@ $$\int_{a}^{b}[THR -LOS(t)]dt$$
 as presented in Fig. \@ref(fig:resiliencebasics) (LOS: loss of service / performance, THR: associated threshold).
 
 ```{r}
-# load analytic dataset
-us <- ds %>% 
-  filter(ADEP_REG == "US" | ADES_REG == "US") %>%
+# summarise regional level
+## -------- percentile thresholds
+pcts   <- c(0.8, 0.6, 0.3, 0.1)
+
+## -------- function definition
+regional_timeline <- function(.ds, .reg, .pcts=pcts){
+us <- .ds %>% 
+  filter(ADEP_REG == .reg | ADES_REG == .reg) %>%
   group_by(YR = year(DATE), DATE) %>% 
   summarize(N = n(), .groups = "drop") 
 
 # static thresholds, x-th percentile rounded to lower integer
-pcts   <- c(0.8, 0.6, 0.3, 0.1)
 us_ref <- us %>% filter(YR == 2019) %>%
-  pull(N) %>% quantile(probs = pcts) %>% floor()
+  pull(N) %>% quantile(probs = .pcts) %>% floor()
 
 us_ref2 <- us %>% filter(YR == 2019, DATE >= lubridate::ymd("2019-07-01")) %>%
-  pull(N) %>% quantile(probs = pcts) %>% floor()
+  pull(N) %>% quantile(probs = .pcts) %>% floor()
 
 max_N <- max(us$N)
 lvls  <- c("First", "Second", "Third", "Fourth", "Fifth")
@@ -370,24 +375,80 @@ us <- us %>%
   mutate( THRES  = cut(N, breaks = c(max_N, us_ref, 0),  labels = lvls)
          ,THRES2 = cut(N, breaks = c(max_N, us_ref2, 0), labels = lvls)
          )
+return(list(us, us_ref, us_ref2))
+}
+
+## do for us
+res <- regional_timeline(ds, "US")
+us  <- res[[1]]
+us_ref2 <- res[[3]]
 ```
 
 (ref:fig-us-timeline) Resilience concept applied to observed US air traffic development
 
 ```{r fig-us-timeline, fig.cap="(ref:fig-us-timeline)"}
-us %>%
+plot_timeline <- function(.df, .pct_ref){
+ p <- .df %>%
   ggplot(aes(x = DATE)) +
-  geom_hline(yintercept = us_ref2, linetype = "dotdash") +
+  geom_hline(yintercept = .pct_ref, linetype = "dotdash") +
   geom_point(aes(y = N, color = THRES2), alpha = 0.3) +
   geom_line( aes(y = N, colour = THRES2, group = 1)) +
   theme_minimal()
+ return(p)
+}
+
+ gg <- plot_timeline(us, us_ref2) 
+ gg
 ```
 
 > TODO - further develop & include sliding window approach proposed by Fabio
 
 # Results/Discussion
 
-1.1
+## Network Level Assessment for Brazil, Europe, and the United States
+
+Based on the study dataset Fig. \@ref(fig:osndaily) provides an appreciation of the global developments.
+This paper zooms in on comparing the situation in Brazil, Europe, and the United States.
+Figure \@ref(fig:us-eu-br-timeline) shows the different network level responses to the regional/local air traffic constraints.
+
+```{r}
+us_timeline <- regional_timeline(ds, "US")
+eu_timeline <- regional_timeline(ds, "EU")
+br_timeline <- regional_timeline(ds, "BR")
+
+trim_timeline <- function(.df){
+  df <- .df %>% filter(DATE >= lubridate::ymd("2020-01-01"))
+}
+
+us_p <- plot_timeline(us_timeline[[1]] %>% trim_timeline(), us_timeline[[3]])
+eu_p <- plot_timeline(eu_timeline[[1]] %>% trim_timeline(), eu_timeline[[3]])
+br_p <- plot_timeline(br_timeline[[1]] %>% trim_timeline(), br_timeline[[3]])
+```
+
+(ref:us-eu-br-timeline) Timeline for United States, Europe, and Brazil
+
+```{r us-eu-br-timeline, fig.cap="(ref:us-eu-br-timeline)"}
+( (us_p + labs(x=NULL, y=NULL, subtitle = "United States")) + 
+  (eu_p + labs(x=NULL, y=NULL, subtitle = "Europe"       )) + 
+  (br_p + labs(x=NULL, y=NULL, subtitle = "Brazil"       ))   ) + 
+  plot_layout(guides = "collect") &
+  theme(legend.position='bottom')
+```
+
+The United States have recovered.
+
+Europe has seen an initial recovery in summer 2020 with a decline towards the holiday season 2020/2021.
+With April/May 2021 traffic increases again in Europe.
+
+Brazil also experienced the sharp decline in traffic in March 2020.
+Similar to the US, traffic in Brazil showed an initial continual increase. 
+Traffic show an alternating pattern.
+
+```
+TODO: provide some more commentary
+```
+
+## Traffic Development - Connectivity
 
 a)  Resilience can be measured as a function of time - the smaller the relationship between time of stress and the time of recovery, more resilient a system is.
 
