@@ -92,8 +92,6 @@ ds  <- fns %>% map_dfr(.f = ~ read_csv(.x))
 
 <!--| 1. Nature of the problem. -->
 
-This paper is heavily informed by the work of [@strohmeier_crowdsourced_2021].
-
 For many years, many concerns of the global air traffic management community has been directed to the evident problem of imbalances between capacity and demand. The pressing, increasing demand for air transport registered in the last decade not only has already produced challenging delay management practices, but also fostered projections of even worse scenarios. EUROCONTROL [@statfor_growth_2018], for example, argued that delays in Europe could reach up to 20 minutes per flight in 2040, in stark contrast to the 12 minutes per flight, as registered in 2016.
 
 In the above scenario, many disturbances on the air navigation system could represent a real threat to multiple stakeholders. Events such as extreme bad weather, unexpected interruptions of air navigation services, changes in regulatory framework and others: all of those inputs could promote even more delay and its propagation effects. That is why the concept of resilience in ATM system became similarly relevant in the agenda during the same period. Arguably, a resilient ATM system could mitigate the negative effects of excessive demands on insufficient capacity and their respective constraints and bottlenecks.
@@ -326,7 +324,14 @@ daily_tfc %>%
   labs(x = NULL, y = "flights")
 ```
 
+The global daily flight dataset by Opensky Network identifies a flight based on a series of received messages of 15 minutes or more [@strohmeier_crowdsourced_2021].
+As the sensor network does not cover the whole globe/airspace, a consistency check is made for flights leaving the coverage area and entering again (e.g. oceanic area).
+A heuristic algorithm for the identification of destination airports is applied for descending trajectories. 
+While there are uncertainties in the data based on these heuristics, the dataset ensures detection of flights within certain geographic regions even without a positive departure and/or destination aerodrome identification.
+
 <!-- add some data set description, e.g. number of files, etc -->
+
+> TODO: develop table with months - file size - number of flights
 
 ## Measuring Resilience
 
@@ -338,11 +343,47 @@ The concept of resilience (and robustness) is intimately linked with the constru
 knitr::include_graphics("figures/resilience-timeline.png")
 ```
 
- Conceptually, resilience R can be measured as the observed loss in quality of service (performance) over the time to recovery, t1-t2, for a certain level of disruption. Thus, mathematically, this represents the area covered by
+Conceptually, resilience R can be measured as the observed loss in quality of service (performance) over the time to recovery, t1-t2, for a certain level of disruption. Thus, mathematically, this represents the area covered by
 
 $$\int_{a}^{b}[THR -LOS(t)]dt$$
 
 as presented in Fig. \@ref(fig:resiliencebasics) (LOS: loss of service / performance, THR: associated threshold).
+
+```{r}
+# load analytic dataset
+us <- ds %>% 
+  filter(ADEP_REG == "US" | ADES_REG == "US") %>%
+  group_by(YR = year(DATE), DATE) %>% 
+  summarize(N = n(), .groups = "drop") 
+
+# static thresholds, x-th percentile rounded to lower integer
+pcts   <- c(0.8, 0.6, 0.3, 0.1)
+us_ref <- us %>% filter(YR == 2019) %>%
+  pull(N) %>% quantile(probs = pcts) %>% floor()
+
+us_ref2 <- us %>% filter(YR == 2019, DATE >= lubridate::ymd("2019-07-01")) %>%
+  pull(N) %>% quantile(probs = pcts) %>% floor()
+
+max_N <- max(us$N)
+lvls  <- c("First", "Second", "Third", "Fourth", "Fifth")
+us <- us %>% 
+  mutate( THRES  = cut(N, breaks = c(max_N, us_ref, 0),  labels = lvls)
+         ,THRES2 = cut(N, breaks = c(max_N, us_ref2, 0), labels = lvls)
+         )
+```
+
+(ref:fig-us-timeline) Resilience concept applied to observed US air traffic development
+
+```{r fig-us-timeline, fig.cap="(ref:fig-us-timeline)"}
+us %>%
+  ggplot(aes(x = DATE)) +
+  geom_hline(yintercept = us_ref2, linetype = "dotdash") +
+  geom_point(aes(y = N, color = THRES2), alpha = 0.3) +
+  geom_line( aes(y = N, colour = THRES2, group = 1)) +
+  theme_minimal()
+```
+
+> TODO - further develop & include sliding window approach proposed by Fabio
 
 # Results/Discussion
 
@@ -372,6 +413,8 @@ temp1 <- ds %>% group_by(DATE, ADEP_REG, ADES_REG) %>% summarize(FLIGHTS = n()) 
 temp1 %>% ggplot(aes(x = DATE)) +
   geom_line(aes(y = (FLIGHTS), color = ROUTE))
 ```
+
+
 
 # Conclusion
 

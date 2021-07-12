@@ -287,7 +287,7 @@ summary(base_dataset)
 
 ```
 
-```{r, eval=TRUE}
+```{r, eval=TRUE, message=FALSE}
 #quick peek
 
 base_filenames <- list.files("./data/", pattern = "base_osn_*")
@@ -317,9 +317,13 @@ ds1
 ds1 %>% ggplot(aes(x = DATE)) +
   geom_line(aes(y = THRESHOLD)) +
   geom_point(aes(y = N, color = N > THRESHOLD))
+```
 
+```{r}
 #CHECK WEEKLY DISTRIBUTION
-ds2 <- ds1 %>% mutate(WEEK_DAY = wday(DATE, label = TRUE), W_END = WEEK_DAY %in% c("Sat", "Sun"))
+ds2 <- ds1 %>% 
+  mutate( WEEK_DAY = wday(DATE, label = TRUE)
+         ,W_END    = WEEK_DAY %in% c("Sat", "Sun"))
 uplim <- .95
 lowlim <- .20
 
@@ -338,9 +342,42 @@ ds2 %>% ggplot(aes(x = DATE)) +
        subtitle = "Red line - Lower threshold; Blue line - upper threshold",
        caption = "Lower threshold set to 20th percentile of the last 180 days;\nUpper threshold set to 95th percentile of the last 180 days"
 )
+```
 
+```
+# breadcrumb ------------- need to check what this is for --------------------
 #ds2 %>% ggplot() +
   geom_freqpoly(aes(x = N, color = W_END))
+```
+
+```{r}
+us <- full_dataset %>% 
+  filter(ADEP_REG == "US" | ADES_REG == "US") %>%
+  group_by(YR = year(DATE), DATE) %>% 
+  summarize(N = n(), .groups = "drop") 
+
+# static thresholds, x-th percentile rounded to lower integer
+pcts   <- c(0.8, 0.6, 0.3, 0.1)
+us_ref <- us %>% filter(YR == 2019) %>%
+  pull(N) %>% quantile(probs = pcts) %>% floor()
+
+us_ref2 <- us %>% filter(YR == 2019, DATE >= lubridate::ymd("2019-07-01")) %>%
+  pull(N) %>% quantile(probs = pcts) %>% floor()
+
+max_N <- max(us$N)
+lvls  <- c("First", "Second", "Third", "Fourth", "Fifth")
+us <- us %>% 
+  mutate( THRES  = cut(N, breaks = c(max_N, us_ref, 0),  labels = lvls)
+         ,THRES2 = cut(N, breaks = c(max_N, us_ref2, 0), labels = lvls)
+         )
+```
+```{r}
+us %>%
+  ggplot(aes(x = DATE)) +
+ # geom_line(aes(y = THRES)) +
+  geom_point(aes(y = N, color = THRES2)) +
+  geom_line(aes(y = N, colour = THRES2, group = 1)) +
+  geom_hline(yintercept = c(max_N, us_ref2, 0))
 ```
 
 
