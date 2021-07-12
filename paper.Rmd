@@ -42,6 +42,10 @@ library(tidyverse)
 library(lubridate)
 library(stats)
 library(zoo)
+
+# for corona data
+# install.packages("coronavirus"), but do not load it!
+# then run: coronavirus::update_dataset() 
 ```
 
 ```{r, echo=FALSE, message=FALSE}
@@ -94,9 +98,12 @@ For many years, many concerns of the global air traffic management community has
 
 In the above scenario, many disturbances on the air navigation system could represent a real threat to multiple stakeholders. Events such as extreme bad weather, unexpected interruptions of air navigation services, changes in regulatory framework and others: all of those inputs could promote even more delay and its propagation effects. That is why the concept of resilience in ATM system became similarly relevant in the agenda during the same period. Arguably, a resilient ATM system could mitigate the negative effects of excessive demands on insufficient capacity and their respective constraints and bottlenecks.
 
-However, the recent COVID-19 crisis posed a completely different, unexpected, and inverted challenge. Demand for air transport dropped as low as 90% of the previous "normal" in many places. Where the lack of capacity was previously the issue, now the lack of demand threatened the ATM system stability. In the financial perspective, airlines and airports had to deal with an unprecedented decrease in incomes. As a result, air navigation providers collected less fees for their services, due to significantly fewer flights. In the operational perspective, pilots and air traffic controllers practiced less. The problems and obstacles developed into many other dimensions.
-
-Hence, the current scenario is a proper moment to further investigate the concept of resilience.
+On March 11, 2020, the World Health Organisation has declared the novel coronavirus (COVID-19) outbreak a global pandemic.
+The COVID-19 crisis posed a completely different, unexpected, and inverted challenge.
+Communicable disease control resulted in massive restrictions on international and regional air traffic and passenger travel. 
+Demand for air transport dropped as low as 90% of the previous "normal" in many places. Where the lack of capacity was previously the issue, now the lack of demand threatened the ATM system stability. 
+In the financial perspective, airlines and airports had to deal with an unprecedented decrease in incomes. As a result, air navigation providers collected less fees for their services, due to significantly fewer flights. 
+In the operational perspective, pilots and air traffic controllers practiced less. The problems and obstacles developed into many other dimensions.
 
 ```{r}
 # Problem Statement 
@@ -128,21 +135,35 @@ Hence, the current scenario is a proper moment to further investigate the concep
 # ???RQ1.What was the impact of the pandemic on ATM resilience?
 # ???  RQ1.1 How resilience can be modeled in a low-demand scenario?
 # ???  RQ1.2 How resilient were different ATM systems worldwide?
-
-
 ```
 
 <!--| 2. High-Level background of previous work or relevance. -->
 
+The unprecedented decline in air traffic demand resulted in severe financial strains on the air transport industry. 
+The financial support or lack thereof for airlines and airports has been widely covered in the media. 
+A variety of studies showed the interplay or consequences of the travel constraints. 
+To date, lower attention was given to the inherent change in terms of air transport services
+Hence, the current scenario is a proper moment to further investigate the concept of resilience.
+
 <!--| 3. Purpose and significance of the paper.  -->
 
-This paper approaches the impact of the pandemic as a massive service disruption of the pre-pandemic global connectivity and regional air transport networks. In particular, the project aims to provide data analytical evidence for policy success and transformation of the air transportation system. As an aspirational goal, the industry aims to recover in a "greener" manner. To date, no assessment of this transformational aspects has been conducted.
+This paper approaches the impact of the pandemic as a massive service disruption of the pre-pandemic global connectivity and regional air transport networks. In particular, the project aims to provide data analytical evidence for policy success and transformation of the air transportation system. As an aspirational goal, the industry aims to recover in a "greener" manner. 
+To date, no assessment of this transformational aspects has been conducted.
 
 <!--| 4. Method by which the problem is approached. -->
 
--   data-analytical approach - using open data / freely available (tbd: validated against organisational data)
--   ???RQ1.1 = through a qualitative analysis of previous proposed models
--   ???RQ1.2 = through a quantitative analysis of open data
+> data-analytical approach - using open data / freely available (tbd: validated against organisational data)
+
+This paper utilises a data-driven approach.
+Despite the fact that aviation is a data rich environment, operational data on the previous and current traffic levels is not consistently available. 
+The global traffic evaluation will be based on data from a community fed sensor network, Opensky-Network. 
+<<CHECK THIS>> The operational flight data will be enriched with other publicly available dataset supporting the description of the level of the COVID pandemic and national/regional responses to the pandemic. 
+
+```{r} 
+# 
+#   ???RQ1.1 = through a qualitative analysis of previous proposed models
+#   ???RQ1.2 = through a quantitative analysis of open data
+```
 
 <!-- 5. Contribution of paper -->
 
@@ -152,15 +173,58 @@ The contribution of this paper are
 
 -   assessing the impact on the basis of open data <!-- specify a bit more what we do/model/analyse -->
 
+  + novel methodology to describe disruption, transformation, and recovery phenomena of the air transport network <<stakeholder operations>>
+
 -   identification of patterns and/or measures to describe and quantify/evaluate the level of recovery (or disruption)
 
 # Background
 
 ## COVID-19 & Air Transportation
 
-On 11. March 2020, the World Health Organisation reacted to the steadily increasing of infections and global spreach of a newly detected Corona-Virus by declaring a pandemic.
+On 11. March 2020, the World Health Organisation reacted to the steadily increasing of infections and global spread of a newly detected Corona-Virus by declaring a pandemic.
+As an immediate response, many governments reacted by imposing controls to curb the further spread of communicable disease.
+Next to social distancing and recommended hygiene measures, this resulted in massive restrictions on international and regional air traffic and passenger travel. 
 
 <!-- TODO: add diagram about increasing COVID infections/deaths and/or potential waves0 -->
+```{r}
+# coronavius (data) package is installed and updated
+# call it with coronavirus:: notation
+# for this paper, we reduce to May 2021 as update() will expand in future runs
+covid <- coronavirus::coronavirus %>% 
+  as_tibble() %>%
+  filter(date <= as.POSIXct("2021-06-01"))
+
+global_cov <- covid %>% 
+  group_by(type, date) %>%
+  summarise(total_cases = sum(cases), .groups = "drop") %>%
+  pivot_wider(names_from = type, values_from = total_cases) %>%
+  arrange(date) %>%
+  mutate(active = confirmed - death - recovered) %>%
+  mutate(active_total = cumsum(active),
+                recovered_total = cumsum(recovered),
+                death_total = cumsum(death))
+```
+
+(ref:fig-global-covid) Reported number of cases (22. Jan 2020 through 27. May 2021) [@coronavirus_data] based on data from John Hopkins University
+
+```{r fig-global-covid, fig.cap="(ref:fig-global-covid)"}
+tmp <- global_cov %>%
+  select(date, contains("total")) %>%
+  pivot_longer(cols = 2:4, names_to = "category", values_to = "counts") 
+
+tmp %>%
+
+ggplot(aes(x = date, y = counts, fill = category)) +
+  geom_area() +
+  theme_minimal() +
+  labs(x = NULL, y = NULL) +
+  theme(legend.position = c(0.2, 0.3)) +
+  scale_fill_manual( name = "cases"
+                    ,values = c("orange","red", "green")
+                    ,labels = c("active", "death","recovered")) +
+  scale_y_continuous(labels = scales::label_number_si())
+```
+
 
 ## Resilience
 
@@ -207,20 +271,36 @@ b)  to answer RQ1.2, a quantitative analysis of open data, to observe (or not) d
 
 ## Open-source Data
 
-This study builds on publicly available data. Opensky Network collects crowdsourced air traffic data from more than 2500 feeders (sensor stations). To support the process of illustrating and studying the impact of the COVID pandemic on air traffic demand, a flight-by-flight dataset is provided on a monthly basis [@xavier_olive_2021_4893103]. The data spans the period since 1. January 2019. Fig. \@ref(fig:osndaily) shows the number of daily flights tracked by Opensky Network globally.
+```{r osndata}
+daily_tfc <- read_csv("./data/daily_osn.csv") %>% distinct()
 
-<!-- add some data set description, e.g. number of files, etc -->
+osn_2019 <- daily_tfc %>% mutate(YR = lubridate::year(DATE)) %>%
+  filter(YR == 2019) %>%
+  summarise( DATE_MAX = DATE[FLTS == max(FLTS)], MAX = max(FLTS)
+            ,DATE_MIN = DATE[FLTS == min(FLTS)], MIN = min(FLTS))
+
+osn_2019_2 <- daily_tfc %>% 
+  filter(DATE >= lubridate::ymd("2019-01-01") & DATE < lubridate::ymd("2020-01-01")) %>%
+  summarise(MED = median(FLTS))
+```
+
+This study builds on publicly available data. Opensky Network collects crowdsourced air traffic data from more than 2500 feeders (sensor stations). To support the process of illustrating and studying the impact of the COVID pandemic on air traffic demand, a flight-by-flight dataset is provided on a monthly basis [@xavier_olive_2021_4893103]. The data spans the period since 1. January 2019.
+Fig. \@ref(fig:osndaily) shows the number of daily flights tracked by Opensky Network globally.
+The observed continual increase throughout the first six months in 2019 is driven by the increasing rate of ADSB equipage. Particularly, air transport operators in the United States or operating to the United States established compliance with the ADSB mandate applicable as of 1. January 2020.
+In 2019, the peak daily number of tracked flights ranges just under `r pretty(osn_2019$MAX, shrink = 0.1)[2]`.
+The negative spike observed on `r osn_2019$DATE_MIN` is linked to a data outage.
+Throughout the second half of 2019 the median number of flights ranged just under `r pretty(osn_2019_2$MED, shrink = 0.2)[2]`.
 
 (ref:osndaily) Daily flights tracked by Opensky Network
 
 ```{r osndaily, fig.cap="(ref:osndaily)", message=FALSE}
-daily_tfc <- read_csv("./data/daily_osn.csv")
-
 daily_tfc %>%
   ggplot(mapping = aes(x = DATE, y = FLTS)) +
   geom_line() +
   labs(x = NULL, y = "flights")
 ```
+
+<!-- add some data set description, e.g. number of files, etc -->
 
 ## Measuring Resilience
 
@@ -275,9 +355,22 @@ temp1 %>% ggplot(aes(x = DATE)) +
 
 <!-- 3. Applications of the results. -->
 
+This paper addressed the identification and description of disruptions, associated transformation, and recovery phenomena of the air transport network.
+The methodology will be useful to support the monitoring of the recovery levels across the globe.
+It complements the toolbox for policy makers and strategic planers to determine priority measures in support of the anticipated air travel demand recovery with the roll-out and increasing levels of vaccination.
+
 <!-- 4. Recommendations for further work. -->
 
+
+<!-- final words -->
+As part of this project, the requirements for an open data based flight table for the evaluation of the global air transportation network are refined. 
+The results and insights of this work will be shared with the wider effort of the ICAO GANP expert group on performance.  
+
 # Acknowledgment {.unnumbered}
+
+<!-- think about providing pointer to paper repo/data vs IEEE/DASC copyright reqs
+The paper is written as a fully reproducible paper based on open datasets. Reproducibility and transparency will be further ensured by utilizing an open source software environment. In that respect, interested researchers or practitioners will be able to validate all aspects of the code, data, and published results. 
+-->
 
 # References {.unnumbered}
 
