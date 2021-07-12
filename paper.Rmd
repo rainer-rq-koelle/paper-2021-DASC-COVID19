@@ -94,7 +94,7 @@ ds  <- fns %>% map_dfr(.f = ~ read_csv(.x))
 
 This paper is heavily informed by the work of [@strohmeier_crowdsourced_2021].
 
-For many years, many concerns of the global air traffic management community has been directed to the evident problem of imbalances between capacity and demand. The pressing, increasing demand for air transport registered in the last decade not only has already produced challenging delay management practices, but also fostered projections of even worse scenarios. EUROCONTROL (\_\_\_\_), for example, argued that delays in Europe could reach up to 20 minutes per flight in 2040, in stark contrast to the 12 minutes per flight, as registered in 2016.
+For many years, many concerns of the global air traffic management community has been directed to the evident problem of imbalances between capacity and demand. The pressing, increasing demand for air transport registered in the last decade not only has already produced challenging delay management practices, but also fostered projections of even worse scenarios. EUROCONTROL [@statfor_growth_2018], for example, argued that delays in Europe could reach up to 20 minutes per flight in 2040, in stark contrast to the 12 minutes per flight, as registered in 2016.
 
 In the above scenario, many disturbances on the air navigation system could represent a real threat to multiple stakeholders. Events such as extreme bad weather, unexpected interruptions of air navigation services, changes in regulatory framework and others: all of those inputs could promote even more delay and its propagation effects. That is why the concept of resilience in ATM system became similarly relevant in the agenda during the same period. Arguably, a resilient ATM system could mitigate the negative effects of excessive demands on insufficient capacity and their respective constraints and bottlenecks.
 
@@ -205,7 +205,7 @@ global_cov <- covid %>%
                 death_total = cumsum(death))
 ```
 
-(ref:fig-global-covid) Reported number of cases (22. Jan 2020 through 27. May 2021) [@coronavirus_data] based on data from John Hopkins University
+(ref:fig-global-covid) Reported number of cases (22. Jan 2020 through 27. May 2021) [@krispin_coronavirus_2021] based on data from John Hopkins University [@JHU_2020]
 
 ```{r fig-global-covid, fig.cap="(ref:fig-global-covid)"}
 tmp <- global_cov %>%
@@ -225,6 +225,10 @@ ggplot(aes(x = date, y = counts, fill = category)) +
   scale_y_continuous(labels = scales::label_number_si())
 ```
 
+TODO
+
+* provide some descriptive text about COVID and government reactions
+* any more key milestones relevant for this study, e.g. US/EU stop, Lufthansa/BA/KLM/Air France stopping to operate to China as of late January
 
 ## Resilience
 
@@ -264,10 +268,32 @@ This paper addresses the operational dimension. Being able to characterise resil
 
 # Method/Materials
 
-A mixed-method approach, based on:
+```{r}
+# A mixed-method approach, based on:
+# 
+# a)  to answer RQ1.1, a qualitative analysis of previous models to develop acute low-demand as a disturbance
+# b)  to answer RQ1.2, a quantitative analysis of open data, to observe (or not) different levels/stages of stress/recovery, which could indicate different "more" or "less" resilience to the disturbances
+```
 
-a)  to answer RQ1.1, a qualitative analysis of previous models to develop acute low-demand as a disturbance
-b)  to answer RQ1.2, a quantitative analysis of open data, to observe (or not) different levels/stages of stress/recovery, which could indicate different "more" or "less" resilience to the disturbances
+## Research Approach and Toolset
+
+This work follows a data-driven approach and is based on the reproducibility paradigm. 
+By design open data sources/sets have been identified and used.
+The associated data analysis is conducted using the open-source software and toolkit R, RStudio, and various packages of the R-ecosystem.
+The paper and its supporting datasets or code to retrieve the data have been published and are freely available.
+
+Figure \@ref(fig:fig-research-approach) shows the overall approach workflow for this paper.
+The primary open data source for air traffic data is the global daily flight data set [@xavier_olive_2021_4893103].
+
+<<VERBATIM -- NEED TO REPHRASE THIS>>----------- 
+This  work  builds  on  the  RStudio [@rstudio]  tools  for  the  R  language [@R]  including  Git  (and  the  web-based  repository  managersGitHub  and  GitLab)  as  underlying  version  control  system.The R language was originally developed within the statisticalcommunity supporting the task of statistical reporting by pro-viding routines for the statistical computing and visualisation.Being  open  source,  the  R  community  is  actively  engagingand  sharing  related  software  packages  to  enhance  the  corefunctionality.  Without  limiting  the  impact  of  other  packages,the  development  of  knitr  [14]  and  RMarkdown  [15],  ggplot[16]  for  visualisation,  and  the  so-called  tidyverse  packagesand  RStudio  IDE  [17]  represent  an  open  source  ecosystemfor data analysis. A key feature for the implementation of thereproducibility paradigm is the fact that RMarkdown supportsthe combination of text, analytical code, and visualisations ina  single  document. 
+<<END VERBATIM COPY -------------------------------------->>
+
+(ref:fig-research-approach) Reproducible Research Approach
+
+```{r fig-research-approach, fig.cap="(ref:fig-research-approach)"}
+knitr::include_graphics("./figures/approach.png")
+```
 
 ## Open-source Data
 
