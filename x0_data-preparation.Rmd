@@ -8,6 +8,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(lubridate)
 library(zoo)
+library(patchwork)
 
 #Reading raw data
 ## todo: change utility function list_osn_files
@@ -412,8 +413,120 @@ tmp %>%
   geom_line(aes(x = DATE, y = MED), color = "green") +
   geom_line(aes(x = DATE, y = BAND, group= "1"), colour = if_else(tmp$LOW_CRIT, "red","green"), size = 4) +
   geom_line(aes(x = DATE, y = BAND-500, group= "1"), colour = if_else(tmp$UP_CRIT, "red","green"), size = 4) +
-  geom_line(aes(x = DATE, y = BAND-1500, group= "1", colour = STATE), size = 4) +
+  geom_line(aes(x = DATE, y = BAND-1500, group= "2", colour = STATE), size = 4) +
   theme_minimal() +
   theme(legend.position = "none")
 ```
 
+
+# Airport Level Considerations
+
+top-5 in the whole sample, confirms preference :)
+
+```{r}
+full_dataset %>% 
+  group_by(ADEP_REG, ADEP) %>% 
+  summarise(N = n()) %>% 
+  slice_max(order_by = N, n = 5)
+```
+
+```{r}
+sbgr <- full_dataset %>% filter(ADEP == "SBGR")
+```
+
+```{r}
+apt_timeline <- function(.df){
+  df <- .df %>% group_by(DATE) %>%
+    summarise(N_DEP = n()
+              ,DEP_DOM = sum(ADEP_CTRY == ADES_CTRY)
+              ,DEP_REG = sum(ADEP_REG == ADES_REG))
+}
+
+plot_timeline <- function(.df){
+  df <- .df %>% 
+  mutate(N_DEP_SM = roll_quantile(N_DEP, width = 7, p = .50))
+
+  p <- df %>%  
+  ggplot() +
+  geom_line(aes(x = DATE, y = N_DEP), colour = "grey60") +
+  geom_line(aes(x = DATE, y = N_DEP_SM)) +
+  scale_x_date( limits = c(as.Date("2019-10-01"), as.Date("2021-06-01"))
+               ,date_breaks = "60 days", date_labels = "%b\n%y") +
+  theme_minimal()
+  
+  return(p)
+}
+
+sbgr %>% apt_timeline() %>% plot_timeline()
+```
+
+```{r}
+sbgr_tl %>%
+  ggplot() +
+  geom_point(aes(x = DATE, y = DEP_DOM / N_DEP)) +
+  theme_minimal()
+```
+```{r}
+dep_vs_domshare <- function(.df){
+  p <- .df %>%
+  ggplot() +
+  geom_point(aes(x = N_DEP, y = DEP_REG / N_DEP, colour = as.factor(year(DATE)))) +
+  labs(colour = NULL) + 
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)
+                     ,expand = c(0,0)) +
+  theme_minimal() +
+  theme(legend.position = c(0.8, 0.8))
+return(p)
+}
+
+sbgr_tl %>% dep_vs_domshare()
+```
+
+```{r}
+check_apt <- function(.mvts, .apt){
+  apt_mvts <- .mvts %>%
+    filter(ADEP == .apt) %>% 
+    apt_timeline()
+  
+  p1 <- apt_mvts  %>% plot_timeline()
+  p2 <- apt_mvts %>% dep_vs_domshare()
+  
+  p <- (p1 + labs(subtitle = .apt)) + p2
+return(p)
+}
+
+full_dataset %>% check_apt("EGLL")
+```
+
+```{r}
+full_dataset %>% check_apt("EDDF")
+```
+
+
+```{r}
+full_dataset %>% check_apt("LFPG")
+```
+
+
+
+```{r}
+full_dataset %>% check_apt("KATL")
+```
+
+
+```{r}
+full_dataset %>% check_apt("KORD")
+```
+
+```{r}
+full_dataset %>% check_apt("KJFK")
+```
+
+
+```{r}
+full_dataset %>% check_apt("EHAM")
+```
+
+```{r}
+full_dataset %>% check_apt("EHAM")
+```
