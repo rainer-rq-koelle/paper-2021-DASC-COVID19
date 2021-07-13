@@ -233,7 +233,9 @@ message(paste0("run completed for ", my_fn))
 
 ## loop over all data
 
-```{r}
+loop deactivated as base data has been saved out and shared across the project team
+
+```{r, eval=FALSE}
 # read all files (note adpat function name)
 fns <- list_apt_files()
 
@@ -380,4 +382,38 @@ us %>%
   geom_hline(yintercept = c(max_N, us_ref2, 0))
 ```
 
+```{r}
+# comparator levels
+uplim  <- .80
+lowlim <- .20
+slide  <-  60
+
+tmp <- us %>% 
+  mutate( N_sm    = roll_quantile(N, width = 7, p = .50)
+         ,MED     = roll_quantile(N, width = 14, p = .50, min_obs = 7)
+         ,UP_THR  = roll_quantile(N, width = slide, p = uplim,  min_obs = 7)
+         ,LOW_THR = roll_quantile(N, width = slide, p = lowlim, min_obs = 7)
+         ,LOW_CRIT= LOW_THR >= MED
+         ,UP_CRIT = UP_THR  <= MED
+         ,STATE   = case_when( !LOW_CRIT & !UP_CRIT ~ "LEVEL"
+                              , LOW_CRIT & !UP_CRIT ~ "CRUNCH"
+                              ,!LOW_CRIT &  UP_CRIT ~ "RECOV" 
+                              ,TRUE ~ "UNKWN")
+         ,BAND    = 4000
+         ) %>%
+  filter(DATE >= lubridate::ymd("2019-10-01"))
+
+tmp %>%
+  ggplot() +
+  geom_line(aes(x = DATE, y = N), colour = "grey80") +
+  geom_line(aes(x = DATE, y = N_sm, colour = THRES2, group = "RQ"), size = 2) +
+  geom_line(aes(x = DATE, y = UP_THR), color = "blue") +
+  geom_line(aes(x = DATE, y = LOW_THR), color = "red") +
+  geom_line(aes(x = DATE, y = MED), color = "green") +
+  geom_line(aes(x = DATE, y = BAND, group= "1"), colour = if_else(tmp$LOW_CRIT, "red","green"), size = 4) +
+  geom_line(aes(x = DATE, y = BAND-500, group= "1"), colour = if_else(tmp$UP_CRIT, "red","green"), size = 4) +
+  geom_line(aes(x = DATE, y = BAND-1500, group= "1", colour = STATE), size = 4) +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
 
