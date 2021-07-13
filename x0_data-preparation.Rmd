@@ -5,10 +5,12 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+#install.packages("ggnewscale")
 library(tidyverse)
 library(lubridate)
 library(zoo)
 library(patchwork)
+library(ggnewscale)
 
 #Reading raw data
 ## todo: change utility function list_osn_files
@@ -404,6 +406,7 @@ tmp <- us %>%
          ) %>%
   filter(DATE >= lubridate::ymd("2019-10-01"))
 
+###---------Rainer, the "new_scale_colour()" kinda resets the scale, and you can use another one for the next geom_lines. In the example below, I left the legend.position = "bottom" (instead of "NULL"), just to see the colors------###
 tmp %>%
   ggplot() +
   geom_line(aes(x = DATE, y = N), colour = "grey80") +
@@ -411,11 +414,14 @@ tmp %>%
   geom_line(aes(x = DATE, y = UP_THR), color = "blue") +
   geom_line(aes(x = DATE, y = LOW_THR), color = "red") +
   geom_line(aes(x = DATE, y = MED), color = "green") +
-  geom_line(aes(x = DATE, y = BAND, group= "1"), colour = if_else(tmp$LOW_CRIT, "red","green"), size = 4) +
+  scale_color_brewer(type = "seq") +
+  new_scale_colour() +
+  geom_line(aes(x = DATE, y = BAND, group= "1"), colour = if_else(tmp$LOW_CRIT, "red","green"), size = 10) +
   geom_line(aes(x = DATE, y = BAND-500, group= "1"), colour = if_else(tmp$UP_CRIT, "red","green"), size = 4) +
-  geom_line(aes(x = DATE, y = BAND-1500, group= "2", colour = STATE), size = 4) +
+  geom_line(aes(x = DATE, y = BAND-1500, group= "1", colour = STATE), size = 4) +
+  scale_colour_brewer(type = "qual") +
   theme_minimal() +
-  theme(legend.position = "none")
+  theme(legend.position = "bottom")
 ```
 
 
