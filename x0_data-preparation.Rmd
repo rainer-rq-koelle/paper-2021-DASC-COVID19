@@ -468,6 +468,8 @@ sbgr %>% apt_timeline() %>% plot_timeline()
 ```
 
 ```{r}
+sbgr_tl <- sbgr %>% apt_timeline()
+
 sbgr_tl %>%
   ggplot() +
   geom_point(aes(x = DATE, y = DEP_DOM / N_DEP)) +
