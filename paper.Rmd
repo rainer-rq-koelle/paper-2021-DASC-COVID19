@@ -353,7 +353,7 @@ While there are uncertainties in the data based on these heuristics, the dataset
 
 ## Measuring Resilience
 
-The concept of resilience (and robustness) is intimately linked with the construct of disruptions.
+The concept of resilience (and robustness) is intimately linked with the construct of disruptions. Any given disturbance forces a disruption in the level of service. Following Gluchshenko's work (2012), the longer the system takes to recover to a previously unperturbed state, the less resilient the system is. In complement, from Koeller's work (2015), the deeper the level of disruption, also less resilient the system is. As a result, a possible interpretation for resilience metrics is found considering both the duration of the disrupted service performance, and its disruption level - or how much a system level of service is affected.
 
 (ref:resiliencebasics) Resilience as a function of disturbance impact
 
@@ -361,7 +361,7 @@ The concept of resilience (and robustness) is intimately linked with the constru
 knitr::include_graphics("figures/resilience-timeline.png")
 ```
 
-Conceptually, resilience R can be measured as the observed loss in quality of service (performance) over the time to recovery, t1-t2, for a certain level of disruption. Thus, mathematically, this represents the area covered by
+Consequently, resilience R can be conceptually measured as the observed loss in quality of service (performance) over the time to recovery, t1-t2, for a certain level of disruption. Thus, mathematically, this represents the area covered by
 
 $$\int_{a}^{b}[THR -LOS(t)]dt$$
 
@@ -419,6 +419,16 @@ plot_timeline <- function(.df, .pct_ref){
 ```
 
 > TODO - further develop & include sliding window approach proposed by Fabio
+
+However, an evident question arises from this approach: what is the proper threshold for the service to be considered disrupted? Certain that, for some indicators, this could be a fixed value, this paper proposes an alternative method. The disruption threshold can be viewed as an adptive function of the recent traffic levels. As a result, the disruption threshold level would not be a fixed value, but a variable one, taking into account the recent trends to define a normal band based on moving windows. The example below shows this potential approach.
+```{r}
+#-------Remember to load and run "x0_data_preparation.Rmd". The object below is produced there!--------#
+ResilienceMovingBands +
+  theme(legend.position = "right")
+```
+
+Instead of a horizontal line (fixed value), the disruption threshold adapts according to the recent trends in traffic. In the figure above, the red line is the disruption threshold, defined as  the `r 100*lowlim`th percentile of the daily traffic, considered the previous `r slide` days. Naturally, those are empirically suggested values that could be adapted according to any particular needs. In addition, the blue line is set to be a potential indicator of disruptions in the opposite direction, i.e. a positive disruption, caused by an abnormal excessive demand.
+
 
 # Results/Discussion
 
