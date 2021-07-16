@@ -262,7 +262,7 @@ Resilience is a well-researched topic. The term is used by a diverse set of doma
 
 The term originates from physics and is nowadays used with reference to safety, security, environment and ecological systems, mental health/psychology, biological system, and others. Despite the varying contexts, across all of these disciplines the concept of resilience is closely related with the capability and ability of the focus of concern - typically the system or agent - to return to a stable state after a disruption impacted the original state.
 
-Recently, the term is also used frequently on the political and strategic level. Policymakers, operational experts, and academes concur that the concept of resilience plays a major role when addressing and assessing the extent to which organisations and systems are prepared and capable to respond to and recover from disruptions.
+Recently, the term is also used frequently on the political and strategic level. Policymakers, operational experts, and academics concur that the concept of resilience plays a major role when addressing and assessing the extent to which organisations and systems are prepared and capable to respond to and recover from disruptions.
 
 Within air navigation, the term 'resilience' has been picked up by several communities, both operational and scientific.
 
@@ -282,9 +282,9 @@ Koelle (2015): proposes to address resilience as a situation management and stat
 
 The unprecedented decline in air transportation since March 2020 has triggered an increased interest in the topic. For example under the umbrella of the ICAO Global Air Navigation Plan Study Group, an expert team is currently working on refining the performance framework with a view to resilience. With a view to COVID, there is a dual interest in understanding resilience in air navigation/transportation:
 
--   political level: ADD SOME DESCRIPTION
+-   political level: The continuity and sustainability of a stable air traffic system supports and affects other dimensions of political interest, such as commercial relations, tourism industry, public health policies, among others. As a result, at a political level, it is of the utmost importance that the air navigation system remains functional. In that understanding, political acts were necessary in face of the pandemic crisis effects on aviation. For example, many governments injected financial support in the airline sector in order to help  them survive the worst periods. In addition, measures such as tax deferrals to air navigation services providers were also adopted. Therefore, understanding how the air navigation system can exist in a more resilient manner is certainly beneficial for many political agents.
 
--   operational level: ADD SOME DESCRIPTION
+-   operational level: While efficiency, delay management, and capacity constraints were previously the main problems affecting resilience, now the concept must be broadened to an inverted scenario. Airlines, ANSPs, airports, and other stakeholders in the industry must remain and manage resilience not only in order to recover from disruptions caused by excessive demand, but also from insufficient demand. If delays are no longer the main threat, others arise, such as insufficient funding, lack of training, and traffic unpredictability.
 
 This paper addresses the operational dimension. Being able to characterise resilience within the operational domain will enable to address the more strategic and political decision-making.
 
