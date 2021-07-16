@@ -264,19 +264,9 @@ The term originates from physics and is nowadays used with reference to safety, 
 
 Recently, the term is also used frequently on the political and strategic level. Policymakers, operational experts, and academics concur that the concept of resilience plays a major role when addressing and assessing the extent to which organisations and systems are prepared and capable to respond to and recover from disruptions.
 
-Within air navigation, the term 'resilience' has been picked up by several communities, both operational and scientific.
+Within air navigation, the term 'resilience' has been picked up by several communities, both operational and scientific. The concept first appeared in this context as a definition proposed by EUROCONTROL (2009): "Resilience is the intrinsic ability of a system to adjust its functioning prior to, during, or following changes and disturbances, so that it can sustain required operations under both expected and unexpected conditions". Later, Gluchshenko (2012) proposed a widened view, including definitions for resilience, robustness, disturbance, stress, and perturbation.  In addition, the work marks the first proposition for a framework of different levels of stress and perturbations, as well as a proposition of potential metrics for resilience (both quantitative and qualitative). On a later work, Gluchshenko (2013) repeats the previous ideas and adds a performance-based approach as well as an algorithm to investigate resilience.
 
-EUROCONTROL (2009): first definition of resilience in ATM context -- "Resilience is the intrinsic ability of a system to adjust its functioning prior to, during, or following changes and disturbances, so that it can sustain required operations under both expected and unexpected conditions".
-
-Gluchshenko (2012):
-
-Definitions for Resilience, robustness, disturbance, stress, and perturbation Proposition for a framework of different levels of stress/perturbations Proposition of metrics for resilience (both quantitative and qualitative)
-
-Gluchshenko (2013): repeats the previous ideas and adds a performance-based approach as well as an algorithm to investigate resilience
-
-Project Resilience 2050 (Jun/2012 + 43 months) -- includes the previous definitions and other technical tasks. However, it evolves the way to measure resilience. Now, not only the time of deviation and time of recovery is considered. The project measures it as the relative difference of rate of delays correlation, or R = (ax1 -- dx1)/dx1 -- it has no unit, it's the difference between two pearson correlations.
-
-Koelle (2015): proposes to address resilience as a situation management and state-oriented problem. Through two case studies, argued that "there is a lack of fit of the current operational ANS performance indicators to address impact of disruptions as they are primarily based on actual timestamps or transition times."
+Those were the basic concepts that supported further works regarding resilience within the air navigation context. For example, the Project Resilience 2050 addresed the previous definitions and other technical tasks. The project ran from June 2012 and lasted 43 months, evolving the way to measure resilience. For the project, not only the time of deviation and time of recovery is considered. Instead, it measures resilience as the relative difference of rate of delays correlation, or R = (ax1 -- dx1)/dx1. As a difference between two pearson correlations, it has no unit adopted. Finally, Koelle (2015) proposed to address resilience as a situation management and state-oriented problem. Through two case studies, the author argued that "there is a lack of fit of the current operational ANS performance indicators to address impact of disruptions as they are primarily based on actual timestamps or transition times."
 
 <!-- provide a pointer hook to the current interest in studying resilience (again) -->
 
