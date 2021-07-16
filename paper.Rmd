@@ -228,15 +228,29 @@ TODO
 
 * provide some descriptive text about COVID and government reactions (DONE BELOW!):
 
-For example, in March 12, 2020, the United States established the suspension of most travels from the European Schengen area (BBC, 2020). A few days later, European Comission President Ursula von der Leyen announced a similar measure, proposing for EU Member States to apply restrictions on non-essential travel. By that time, several countries, such as Austria, Germany, and Poland had already implemented border check controls, while Portugal, Italy, and Spain have imposed lockdowns (Nielsen, 2020). At the same time, Australia imposed a severe arrival block on all non-citizens and non-residents at its airports (Worthington & Snape, 2020). In South America, Brazil, Chile, Argentina and other countries also followed the trend and closed their borders, totally or partially (France24, 2020). As a result, an unparalleled air traffic drop was seen worldwide.
+For example, in March 12, 2020, the United States established the suspension of most travels from the European Schengen area (BBC, 2020). A few days later, European Comission President Ursula von der Leyen announced a similar measure, proposing for EU Member States to apply restrictions on non-essential travel. By that time, several countries, such as Austria, Germany, and Poland had already implemented border check controls, while Portugal, Italy, and Spain have imposed lockdowns (Nielsen, 2020). At the same time, Australia imposed a severe arrival block on all non-citizens and non-residents at its airports (Worthington & Snape, 2020). In South America, Brazil, Chile, Argentina and other countries also followed the trend and closed their borders, totally or partially (France24, 2020). As a result, an unparalleled air traffic decline was seen worldwide (ICAO, 2021).
 
-BBC. (2020, March 12). Coronavirus: Trump suspends travel from Europe to US. https://www.bbc.com/news/world-us-canada-51846923
+```{r, out.width='50%', fig.align='center'}
+### It's not really open data, but shows the unprecedented decline mentioned above.###
+#Use this only if you want...#
 
-France24. (2020, March 16). Chile closes borders as Latam grounds flights over pandemic. https://www.france24.com/en/20200316-chile-closes-borders-as-latam-grounds-flights-over-pandemic
+knitr::include_graphics('./figures/unprecedented_decline.jpg')
 
-Nielsen, N. (2020, March 17). Commission proposes 'non-essential travel' EU entry ban. EU Observer. https://euobserver.com/coronavirus/147764
+#Please add the references below to the bib:
 
-Worthington, B., & Snape, J. (2020, March 19). Australia blocks arrival of all non-citizens, non-residents in expanded coronavirus travel ban. ABC News. https://www.abc.net.au/news/2020-03-19/coronavirus-non-resident-travel-ban-australia/12071640
+#BBC. (2020, March 12). Coronavirus: Trump suspends travel from Europe to US. https://www.bbc.com/news/world-us-canada-51846923
+
+#France24. (2020, March 16). Chile closes borders as Latam grounds flights over pandemic. https://www.france24.com/en/20200316-chile-closes-borders-as-latam-grounds-flights-over-pandemic
+
+#International Civil Aviation Organization. (2021, July 13). Effects of novel Coronavirus (COVID‐19) on civil aviation:Economic impact analysis. https://www.icao.int/sustainability/Documents/COVID-19/ICAO_Coronavirus_Econ_Impact.pdf
+
+#Nielsen, N. (2020, March 17). Commission proposes 'non-essential travel' EU entry ban. EU Observer. https://euobserver.com/coronavirus/147764
+
+#Worthington, B., & Snape, J. (2020, March 19). Australia blocks arrival of all non-citizens, non-residents in expanded coronavirus travel ban. ABC News. https://www.abc.net.au/news/2020-03-19/coronavirus-non-resident-travel-ban-australia/12071640
+
+```
+
+
 
 
 
