@@ -229,18 +229,82 @@ load_shapefile_for_geo_ref <- function(){
 }
 
 #' utility function to coerce
+pts_latlon_sf <- function(.df ,.lat, .lon, .drop=FALSE){
+  check <- nrow(.df)
+  df <- .df %>%
+    filter(!is.na(.data[[.lat]]))%>%    # index to character vector ?!!
+    sf::st_as_sf(coords = c(.lon, .lat), crs=4326, remove = .drop)
+  
+  if(check > nrow(df)) warning(paste0("\nremoved ", check - nrow(df), " flights with NA in lat/lon."))
+  
+  return(df)
+}
+
+#' identify territory based on lat/lon
+geo_sfpts <- function(.sfpts, .shape){
+  pts <- .sfpts %>%
+    sf::st_join(.shape)
+  return(pts)
+}
 
 # ====================== wrap all prep in one function ===================
 
 prep_base_data <- function(.fn = file_names, ...){
 ds <- read_osn_covid(.fn)
-ds <- ds %>% append_ad_ctry()
+ds <- ds %>% append_ad_ctry() 
+ds <- ds %>% append_region()
 
-ds_ok  <- ds %>% filter(!is.na(ADEP), !is.na(ADES))
+ds_ok  <- ds %>% filter(!is.na(ADEP), !is.na(ADES)) %>% select(ADEP:CALL)
 ds_nok <- ds %>% filter( is.na(ADEP) | is.na(ADES))
 
+ds_nok_adep <- ds_nok %>% filter(is.na(ADEP)) %>% 
+    pts_latlon_sf("LAT1","LON1") %>% 
+    geo_sfpts(eez_land) %>% 
+    mutate(ISO2 = countrycode(ISO_TER1, origin = "iso3c", destination = "iso2c")
+           ,ADEP     = case_when(ALT1 <= 5000 ~ 'XLOX', ALT1 > 5000 ~ 'XHIX', TRUE ~ as.character(NA))
+           ,ADEP_CTRY= case_when( ADEP == "XHIX" ~ "Other"
+                                 ,ADEP == "XLOX" & !is.na(ISO2) ~ ISO2
+                                 ,ADEP == "XLOX" & is.na(ISO2) ~ ADES_CTRY
+                                 ,TRUE ~ as.character(NA))
+           )
 
-ds <- ds %>% append_region()
+ok <- ds_nok_adep %>% filter(!is.na(ADES))  # check there are a few apts with no country
+nok<- ds_nok_adep %>% filter( is.na(ADES)) %>%
+  sf::st_drop_geometry() %>% rename(ISO3_ADEP = ISO_TER1, ISO2_ADEP = ISO2) %>%
+  pts_latlon_sf("LAT2","LON2") %>% 
+  geo_sfpts(eez_land) %>% 
+    mutate(ISO2 = countrycode(ISO_TER1, origin = "iso3c", destination = "iso2c")
+           ,ADES     = case_when(ALT2 <= 5000 ~ 'XLOX', ALT2 > 5000 ~ 'XHIX', TRUE ~ as.character(NA))
+           ,ADES_CTRY= case_when( ADES == "XHIX" ~ "Other"
+                                 ,ADES == "XLOX" & !is.na(ISO2) ~ ISO2
+                                 ,ADES == "XLOX" & is.na(ISO2) ~ ADEP_CTRY
+                                 ,TRUE ~ as.character(NA))
+    )
+
+ok <- ok  %>% sf::st_drop_geometry() %>% select(ADEP:CALL)
+nok<- nok %>% sf::st_drop_geometry() %>% select(ADEP:CALL)
+
+ds_nok_adep <- bind_rows(ok, nok) %>% append_region()
+
+ds_nok_ades <- ds_nok %>% filter(!is.na(ADEP), is.na(ADES)) %>%
+  pts_latlon_sf("LAT2","LON2") %>% 
+  geo_sfpts(eez_land) %>% 
+    mutate(ISO2 = countrycode(ISO_TER1, origin = "iso3c", destination = "iso2c")
+           ,ADES     = case_when(ALT2 <= 5000 ~ 'XLOX', ALT2 > 5000 ~ 'XHIX', TRUE ~ as.character(NA))
+           ,ADES_CTRY= case_when( ADES == "XHIX" ~ "Other"
+                                 ,ADES == "XLOX" & !is.na(ISO2) ~ ISO2
+                                 ,ADES == "XLOX" & is.na(ISO2) ~ ADEP_CTRY
+                                 ,TRUE ~ as.character(NA))
+    ) %>% 
+  sf::st_drop_geometry() %>% select(ADEP:CALL) %>% 
+  append_region()
+
+ds_nok <- bind_rows(ds_nok_adep, ds_nok_ades)   # verify number of flights
+
+#--------- combine again
+ds <- bind_rows(ds_ok, ds_nok)
+
+#-------------------
 
 meta <- extract_meta_osn(ds)
 check_and_write_meta(meta)
@@ -255,7 +319,7 @@ check_and_write_meta(daily_count, "./data/daily_osn.csv")
 
 # write out base data
 my_fn <- gsub(pattern = "-raw", replacement = "", x = .fn)
-my_fn <- gsub(pattern = "flightlist_", replacement = "base_osn_", x = my_fn)
+my_fn <- gsub(pattern = "flightlist_", replacement = "base_osn_2_", x = my_fn)
 my_fn <- gsub(pattern = "\\.gz", replacement = "", x = my_fn)
 write_csv(ds, file = my_fn)
 message(paste0("run completed for ", my_fn))
