@@ -1,0 +1,169 @@
+---
+title: "COVID"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+covidregionaldata := one of the many packages dealing with pre-packaging COVID data.
+Potential sources WHO (often cited as unreliable), ECDC (European Center of Disease Control - changed recently to weekly data - provides R tailored download), and JHU (kicked off data collection/harmonisation effort, often cited/used)
+
+```{r, message=FALSE}
+library(covidregionaldata)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(scales)
+```
+
+```{r}
+covid_jhu <- get_national_data(source = "jhu")
+covid_who <- get_national_data(source = "who")
+covid_ecdc<- get_national_data(source = "ecdc")
+```
+
+```{r}
+global_jhu <- covid_jhu %>%
+  group_by(date) %>%
+  summarise( cases_total     = sum(cases_total, na.rm = TRUE)
+            ,deaths_total    = sum(deaths_total, na.rm = TRUE)
+            ,recovered_total = sum(recovered_total, na.rm = TRUE))
+```
+
+```{r}
+global_jhu %>% 
+  pivot_longer(cols = 2:4, names_to = "category", values_to = "counts") %>%
+  
+ggplot(aes(x = date, y = counts, fill = category)) +
+  geom_area() +
+  labs(title = "JHU ???")
+```
+
+```{r}
+global_who <- covid_who %>%
+  group_by(date) %>%
+  summarise( cases_total     = sum(cases_total, na.rm = TRUE)
+            ,deaths_total    = sum(deaths_total, na.rm = TRUE)
+            ,recovered_total = sum(recovered_total, na.rm = TRUE))
+```
+
+```{r}
+global_who %>% 
+  pivot_longer(cols = 2:4, names_to = "category", values_to = "counts") %>%
+  
+ggplot(aes(x = date, y = counts, fill = category)) +
+  geom_area() +
+  labs(title = "WHO - no recovered cases")
+```
+
+
+
+```{r}
+global_ecdc <- covid_ecdc %>%
+  group_by(date) %>%
+  summarise( cases_total     = sum(cases_total, na.rm = TRUE)
+            ,deaths_total    = sum(deaths_total, na.rm = TRUE)
+            ,recovered_total = sum(recovered_total, na.rm = TRUE))
+```
+
+```{r}
+global_ecdc %>% 
+  pivot_longer(cols = 2:4, names_to = "category", values_to = "counts") %>%
+  
+ggplot(aes(x = date, y = counts, fill = category)) +
+  geom_area() +
+  labs(title = "ECDC")
+```
+
+
+
+test another COVID19 project
+
+```{r}
+#install.packages("coronavirus")
+# library(coronavirus)
+# ---------- it is better to pull in latest changes by calling without library 
+coronavirus::update_dataset()  # pulls latest (data)version
+library(coronavirus)           # then call library
+
+covid <- coronavirus %>% as_tibble()
+```
+
+```{r}
+global_cov <- covid %>% 
+  group_by(type, date) %>%
+  summarise(total_cases = sum(cases), .groups = "drop") %>%
+  pivot_wider(names_from = type, values_from = total_cases) %>%
+  arrange(date) %>%
+  mutate(active = confirmed - death - recovered) %>%
+  mutate(active_total = cumsum(active),
+                recovered_total = cumsum(recovered),
+                death_total = cumsum(death))
+
+global_cov
+```
+
+```{r}
+tmp <- global_cov %>%
+  select(date, contains("total")) %>%
+  pivot_longer(cols = 2:4, names_to = "category", values_to = "counts") 
+
+tmp %>%
+
+ggplot(aes(x = date, y = counts, fill = category)) +
+  geom_area() +
+  theme_minimal() +
+  labs(x = NULL, y = NULL) +
+  theme(legend.position = c(0.2, 0.3)) +
+  scale_fill_manual( name = "cases"
+                    ,values = c("orange","red", "green")
+                    ,labels = c("active", "death","recovered")) +
+  scale_y_continuous(labels = scales::label_number_si())
+```
+
+```{r}
+conf_df <- covid %>% 
+  filter(type == "confirmed") %>%
+  group_by(country) %>%
+  summarise(total_cases = sum(cases)) %>%
+  arrange(-total_cases) %>%
+  mutate(
+     share  = round( 100 * (total_cases / sum(total_cases)))
+    ,parents = "Confirmed cases") %>%
+  ungroup() 
+```
+
+```{r}
+# plotly based treemap
+library(plotly)
+ plot_ly(data = conf_df,
+          type= "treemap",
+          values = ~total_cases,
+          labels= ~ country,
+          parents=  ~parents,
+          domain = list(column=0),
+          name = "Confirmed",
+          textinfo="label+value+percent parent")
+```
+
+
+```{r}
+# install.packages("treemapify")
+# for options and how to use check out: https://r-charts.com/part-whole/treemapify/
+
+library(treemapify)
+
+ggplot( data = conf_df
+       , aes( area  = total_cases, fill = as.factor(share), colour = I("white")
+             ,label = paste0(country, "\n", total_cases, "\n", share, "%")
+             )
+       ) +
+  geom_treemap(start = "topleft") +
+  geom_treemap_text(colour = "white", start = "topleft") +
+  theme(legend.position = "none") +
+  #scale_fill_brewer(palette = "Blues")
+  scale_fill_viridis_d()
+```
+

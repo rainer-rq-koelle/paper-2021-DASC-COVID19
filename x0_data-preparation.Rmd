@@ -5,11 +5,15 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+#install.packages("ggnewscale")
+
 library(tidyverse)
 library(lubridate)
 library(zoo)
 library(sf)
 library(countrycode)
+library(patchwork)
+library(ggnewscale)
 
 #Reading raw data
 ## todo: change utility function list_osn_files
@@ -260,7 +264,9 @@ message(paste0("run completed for ", my_fn))
 
 ## loop over all data
 
-```{r}
+loop deactivated as base data has been saved out and shared across the project team
+
+```{r, eval=FALSE}
 # read all files (note adpat function name)
 fns <- list_apt_files()
 
@@ -314,7 +320,7 @@ summary(base_dataset)
 
 ```
 
-```{r, eval=TRUE}
+```{r, eval=TRUE, message=FALSE}
 #quick peek
 
 base_filenames <- list.files("./data/", pattern = "base_osn_*")
@@ -344,9 +350,13 @@ ds1
 ds1 %>% ggplot(aes(x = DATE)) +
   geom_line(aes(y = THRESHOLD)) +
   geom_point(aes(y = N, color = N > THRESHOLD))
+```
 
+```{r}
 #CHECK WEEKLY DISTRIBUTION
-ds2 <- ds1 %>% mutate(WEEK_DAY = wday(DATE, label = TRUE), W_END = WEEK_DAY %in% c("Sat", "Sun"))
+ds2 <- ds1 %>% 
+  mutate( WEEK_DAY = wday(DATE, label = TRUE)
+         ,W_END    = WEEK_DAY %in% c("Sat", "Sun"))
 uplim <- .95
 lowlim <- .20
 
@@ -365,9 +375,197 @@ ds2 %>% ggplot(aes(x = DATE)) +
        subtitle = "Red line - Lower threshold; Blue line - upper threshold",
        caption = "Lower threshold set to 20th percentile of the last 180 days;\nUpper threshold set to 95th percentile of the last 180 days"
 )
+```
 
+```
+# breadcrumb ------------- need to check what this is for --------------------
 #ds2 %>% ggplot() +
   geom_freqpoly(aes(x = N, color = W_END))
 ```
 
+```{r}
+us <- full_dataset %>% 
+  filter(ADEP_REG == "US" | ADES_REG == "US") %>%
+  group_by(YR = year(DATE), DATE) %>% 
+  summarize(N = n(), .groups = "drop") 
 
+# static thresholds, x-th percentile rounded to lower integer
+pcts   <- c(0.8, 0.6, 0.3, 0.1)
+us_ref <- us %>% filter(YR == 2019) %>%
+  pull(N) %>% quantile(probs = pcts) %>% floor()
+
+us_ref2 <- us %>% filter(YR == 2019, DATE >= lubridate::ymd("2019-07-01")) %>%
+  pull(N) %>% quantile(probs = pcts) %>% floor()
+
+max_N <- max(us$N)
+lvls  <- c("First", "Second", "Third", "Fourth", "Fifth")
+us <- us %>% 
+  mutate( THRES  = cut(N, breaks = c(max_N, us_ref, 0),  labels = lvls)
+         ,THRES2 = cut(N, breaks = c(max_N, us_ref2, 0), labels = lvls)
+         )
+```
+```{r}
+us %>%
+  ggplot(aes(x = DATE)) +
+ # geom_line(aes(y = THRES)) +
+  geom_point(aes(y = N, color = THRES2)) +
+  geom_line(aes(y = N, colour = THRES2, group = 1)) +
+  geom_hline(yintercept = c(max_N, us_ref2, 0))
+```
+
+```{r}
+# comparator levels
+uplim  <- .80
+lowlim <- .20
+slide  <-  60
+
+tmp <- us %>% 
+  mutate( N_sm    = roll_quantile(N, width = 7, p = .50)
+         ,MED     = roll_quantile(N, width = 14, p = .50, min_obs = 7)
+         ,UP_THR  = roll_quantile(N, width = slide, p = uplim,  min_obs = 7)
+         ,LOW_THR = roll_quantile(N, width = slide, p = lowlim, min_obs = 7)
+         ,LOW_CRIT= LOW_THR >= MED
+         ,UP_CRIT = UP_THR  <= MED
+         ,STATE   = case_when( !LOW_CRIT & !UP_CRIT ~ "LEVEL"
+                              , LOW_CRIT & !UP_CRIT ~ "CRUNCH"
+                              ,!LOW_CRIT &  UP_CRIT ~ "RECOV" 
+                              ,TRUE ~ "UNKWN")
+         ,BAND    = 4000
+         ) %>%
+  filter(DATE >= lubridate::ymd("2019-10-01"))
+
+###---------Rainer, the "new_scale_colour()" kinda resets the scale, and you can use another one for the next geom_lines. In the example below, I left the legend.position = "bottom" (instead of "NULL"), just to see the colors------###
+Glass <- rgb(0, 0, 0, max = 255, alpha = 0, names = "transparent")
+
+ResilienceMovingBands <- tmp %>%
+  ggplot() +
+  geom_line(aes(x = DATE, y = N), colour = "grey80") +
+  geom_line(aes(x = DATE, y = N_sm, colour = THRES2, group = "RQ"), size = 2) +
+  geom_line(aes(x = DATE, y = UP_THR), color = "blue") +
+  geom_line(aes(x = DATE, y = LOW_THR), color = "red") +
+  #geom_line(aes(x = DATE, y = MED), color = "forestgreen", size = 2) +
+  #scale_color_brewer(type = "qual") +
+  new_scale_colour() +
+  geom_line(aes(x = DATE, y = BAND-100, group= "1"), colour = if_else(tmp$LOW_CRIT, "red",Glass), size = 4) +
+  geom_line(aes(x = DATE, y = BAND+16000, group= "1"), colour = if_else(tmp$UP_CRIT, "blue", Glass), size = 4) +
+  geom_line(aes(x = DATE, y = BAND-4000, group= "1", colour = STATE), size = 10) +
+  scale_colour_manual(values = c("darkred", Glass, "darkblue")) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+ResilienceMovingBands
+```
+
+
+# Airport Level Considerations
+
+top-5 in the whole sample, confirms preference :)
+
+```{r}
+full_dataset %>% 
+  group_by(ADEP_REG, ADEP) %>% 
+  summarise(N = n()) %>% 
+  slice_max(order_by = N, n = 5)
+```
+
+```{r}
+sbgr <- full_dataset %>% filter(ADEP == "SBGR")
+```
+
+```{r}
+apt_timeline <- function(.df){
+  df <- .df %>% group_by(DATE) %>%
+    summarise(N_DEP = n()
+              ,DEP_DOM = sum(ADEP_CTRY == ADES_CTRY)
+              ,DEP_REG = sum(ADEP_REG == ADES_REG))
+}
+
+plot_timeline <- function(.df){
+  df <- .df %>% 
+  mutate(N_DEP_SM = roll_quantile(N_DEP, width = 7, p = .50))
+
+  p <- df %>%  
+  ggplot() +
+  geom_line(aes(x = DATE, y = N_DEP), colour = "grey60") +
+  geom_line(aes(x = DATE, y = N_DEP_SM)) +
+  scale_x_date( limits = c(as.Date("2019-10-01"), as.Date("2021-06-01"))
+               ,date_breaks = "60 days", date_labels = "%b\n%y") +
+  theme_minimal()
+  
+  return(p)
+}
+
+sbgr %>% apt_timeline() %>% plot_timeline()
+```
+
+```{r}
+sbgr_tl <- sbgr %>% apt_timeline()
+
+sbgr_tl %>%
+  ggplot() +
+  geom_point(aes(x = DATE, y = DEP_DOM / N_DEP)) +
+  theme_minimal()
+```
+```{r}
+dep_vs_domshare <- function(.df){
+  p <- .df %>%
+  ggplot() +
+  geom_point(aes(x = N_DEP, y = DEP_REG / N_DEP, colour = as.factor(year(DATE)))) +
+  labs(colour = NULL) + 
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)
+                     ,expand = c(0,0)) +
+  theme_minimal() +
+  theme(legend.position = c(0.8, 0.8))
+return(p)
+}
+
+sbgr_tl %>% dep_vs_domshare()
+```
+
+```{r}
+check_apt <- function(.mvts, .apt){
+  apt_mvts <- .mvts %>%
+    filter(ADEP == .apt) %>% 
+    apt_timeline()
+  
+  p1 <- apt_mvts  %>% plot_timeline()
+  p2 <- apt_mvts %>% dep_vs_domshare()
+  
+  p <- (p1 + labs(subtitle = .apt)) + p2
+return(p)
+}
+
+full_dataset %>% check_apt("EGLL")
+```
+
+```{r}
+full_dataset %>% check_apt("EDDF")
+```
+
+
+```{r}
+full_dataset %>% check_apt("LFPG")
+```
+
+
+
+```{r}
+full_dataset %>% check_apt("KATL")
+```
+
+
+```{r}
+full_dataset %>% check_apt("KORD")
+```
+
+```{r}
+full_dataset %>% check_apt("KJFK")
+```
+
+
+```{r}
+full_dataset %>% check_apt("EHAM")
+```
+
+```{r}
+full_dataset %>% check_apt("EHAM")
+```
