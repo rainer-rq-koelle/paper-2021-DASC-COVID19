@@ -250,12 +250,17 @@ geo_sfpts <- function(.sfpts, .shape){
 # ====================== wrap all prep in one function ===================
 
 prep_base_data <- function(.fn = file_names, ...){
+
 ds <- read_osn_covid(.fn)
 ds <- ds %>% append_ad_ctry() 
 ds <- ds %>% append_region()
 
 ds_ok  <- ds %>% filter(!is.na(ADEP), !is.na(ADES)) %>% select(ADEP:CALL)
 ds_nok <- ds %>% filter( is.na(ADEP) | is.na(ADES))
+
+
+#----------------------- geo referencing of lat-lon to complement ADEP/ADES
+eez_land <- load_shapefile_for_geo_ref()
 
 ds_nok_adep <- ds_nok %>% filter(is.na(ADEP)) %>% 
     pts_latlon_sf("LAT1","LON1") %>% 
@@ -336,6 +341,7 @@ fns <- list_apt_files()
 
 # crunch study data
 walk(fns, .f = prep_base_data)
+walk(fns[13:length(fns)], .f = prep_base_data)
 ```
 
 # Todo's, observations, etc.
