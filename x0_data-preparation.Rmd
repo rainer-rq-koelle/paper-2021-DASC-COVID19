@@ -8,6 +8,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(lubridate)
 library(zoo)
+library(sf)
+library(countrycode)
 
 #Reading raw data
 ## todo: change utility function list_osn_files
@@ -107,10 +109,17 @@ read_osn_covid <- function(.fn, .col_spec = osn_colspec){
   fb <- fb %>% 
   transmute( ADEP = origin
             ,ADES = destination
+            ,ICAO24 = icao24
             ,TYPE = as.factor(typecode)
             ,DATE = date(day)
             ,CALL = callsign
             #,ACFT_ID = aircraft_uid    # throws an error in today's data download
+            ,LAT1 = latitude_1
+            ,LON1 = longitude_1
+            ,ALT1 = altitude_1
+            ,LAT2 = latitude_2
+            ,LON2 = longitude_2
+            ,ALT2 = altitude_2
             )
 
 return(fb)
@@ -206,9 +215,27 @@ check_and_write_meta <- function(.new_meta, .my_meta = "./data/meta_osn.csv"){
   write_csv(meta, file = our_meta)
 }
 
+# ====================== geo coding stuff ===================================
+
+#' utility function to geocode lat lon positions - read shape files for geocoding
+#' 
+load_shapefile_for_geo_ref <- function(){
+  EEZ_land_shp <- list.files("../__DATA/xWorld_EEZ_and_land_v3", pattern = ".shp$", full.names = TRUE)
+  eez_land <- sf::read_sf(EEZ_land_shp) %>% select(ISO_TER1)
+}
+
+#' utility function to coerce
+
+# ====================== wrap all prep in one function ===================
+
 prep_base_data <- function(.fn = file_names, ...){
 ds <- read_osn_covid(.fn)
 ds <- ds %>% append_ad_ctry()
+
+ds_ok  <- ds %>% filter(!is.na(ADEP), !is.na(ADES))
+ds_nok <- ds %>% filter( is.na(ADEP) | is.na(ADES))
+
+
 ds <- ds %>% append_region()
 
 meta <- extract_meta_osn(ds)
@@ -220,7 +247,7 @@ daily_count <- ds %>%
 check_and_write_meta(daily_count, "./data/daily_osn.csv")
 #----------------------------------------------------------------
 
-ds <- ds %>% drop_na()  # drop all ~ assumed to be clean
+#ds <- ds %>% drop_na()  # drop all ~ assumed to be clean
 
 # write out base data
 my_fn <- gsub(pattern = "-raw", replacement = "", x = .fn)
