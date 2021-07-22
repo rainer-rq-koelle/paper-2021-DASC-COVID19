@@ -45,6 +45,10 @@ library(lubridate)
 library(stats)
 library(zoo)
 library(patchwork)
+library(roll)
+library(sf)
+library(countrycode)
+library(ggnewscale)
 
 # for corona data
 # install.packages("coronavirus"), but do not load it!
@@ -423,8 +427,50 @@ plot_timeline <- function(.df, .pct_ref){
 > TODO - further develop & include sliding window approach proposed by Fabio
 
 However, an evident question arises from this approach: what is the proper threshold for the service to be considered disrupted? Certain that, for some indicators, this could be a fixed value, this paper proposes an alternative method. The disruption threshold can be viewed as an adptive function of the recent traffic levels. As a result, the disruption threshold level would not be a fixed value, but a variable one, taking into account the recent trends to define a normal band based on moving windows. The example below shows this potential approach.
+
+<<put band graph here>>
+
 ```{r}
-#-------Remember to load and run "x0_data_preparation.Rmd". The object below is produced there!--------#
+# comparator levels
+uplim  <- .80
+lowlim <- .20
+slide  <-  60
+
+tmp <- us %>% 
+  mutate( N_sm    = roll_quantile(N, width = 7, p = .50)
+         ,MED     = roll_quantile(N, width = 14, p = .50, min_obs = 7)
+         ,UP_THR  = roll_quantile(N, width = slide, p = uplim,  min_obs = 7)
+         ,LOW_THR = roll_quantile(N, width = slide, p = lowlim, min_obs = 7)
+         ,LOW_CRIT= LOW_THR >= MED
+         ,UP_CRIT = UP_THR  <= MED
+         ,STATE   = case_when( !LOW_CRIT & !UP_CRIT ~ "LEVEL"
+                              , LOW_CRIT & !UP_CRIT ~ "CRUNCH"
+                              ,!LOW_CRIT &  UP_CRIT ~ "RECOV" 
+                              ,TRUE ~ "UNKWN")
+         ,BAND    = 4000
+         ) %>%
+  filter(DATE >= lubridate::ymd("2019-10-01"))
+
+###---------Rainer, the "new_scale_colour()" kinda resets the scale, and you can use another one for the next geom_lines. In the example below, I left the legend.position = "bottom" (instead of "NULL"), just to see the colors------###
+Glass <- rgb(0, 0, 0, max = 255, alpha = 0, names = "transparent")
+
+ResilienceMovingBands <- tmp %>%
+  ggplot() +
+  geom_line(aes(x = DATE, y = N), colour = "grey80") +
+  geom_line(aes(x = DATE, y = N_sm, colour = THRES2, group = "RQ"), size = 2) +
+  geom_line(aes(x = DATE, y = UP_THR), color = "blue") +
+  geom_line(aes(x = DATE, y = LOW_THR), color = "red") +
+  #geom_line(aes(x = DATE, y = MED), color = "forestgreen", size = 2) +
+  #scale_color_brewer(type = "qual") +
+  new_scale_colour() +
+  geom_line(aes(x = DATE, y = BAND-100, group= "1"), colour = if_else(tmp$LOW_CRIT, "red",Glass), size = 4) +
+  geom_line(aes(x = DATE, y = BAND+16000, group= "1"), colour = if_else(tmp$UP_CRIT, "blue", Glass), size = 4) +
+  geom_line(aes(x = DATE, y = BAND-4000, group= "1", colour = STATE), size = 10) +
+  scale_colour_manual(values = c("darkred", Glass, "darkblue")) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+
 ResilienceMovingBands +
   theme(legend.position = "right")
 ```

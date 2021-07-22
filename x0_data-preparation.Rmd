@@ -393,7 +393,7 @@ summary(base_dataset)
 ```{r, eval=TRUE, message=FALSE}
 #quick peek
 
-base_filenames <- list.files("./data/", pattern = "base_osn_*")
+base_filenames <- list.files("./data/", pattern = "base_osn_2*")
 base_fullnames <- c(paste0("./data/", base_filenames))
 full_dataset <- map_dfr(base_fullnames, read_csv)
 
