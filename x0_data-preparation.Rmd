@@ -10,6 +10,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(lubridate)
 library(zoo)
+library(sf)
+library(countrycode)
 library(patchwork)
 library(ggnewscale)
 
@@ -111,10 +113,17 @@ read_osn_covid <- function(.fn, .col_spec = osn_colspec){
   fb <- fb %>% 
   transmute( ADEP = origin
             ,ADES = destination
+            ,ICAO24 = icao24
             ,TYPE = as.factor(typecode)
             ,DATE = date(day)
             ,CALL = callsign
             #,ACFT_ID = aircraft_uid    # throws an error in today's data download
+            ,LAT1 = latitude_1
+            ,LON1 = longitude_1
+            ,ALT1 = altitude_1
+            ,LAT2 = latitude_2
+            ,LON2 = longitude_2
+            ,ALT2 = altitude_2
             )
 
 return(fb)
@@ -210,10 +219,97 @@ check_and_write_meta <- function(.new_meta, .my_meta = "./data/meta_osn.csv"){
   write_csv(meta, file = our_meta)
 }
 
+# ====================== geo coding stuff ===================================
+
+#' utility function to geocode lat lon positions - read shape files for geocoding
+#' 
+load_shapefile_for_geo_ref <- function(){
+  EEZ_land_shp <- list.files("../__DATA/xWorld_EEZ_and_land_v3", pattern = ".shp$", full.names = TRUE)
+  eez_land <- sf::read_sf(EEZ_land_shp) %>% select(ISO_TER1)
+}
+
+#' utility function to coerce
+pts_latlon_sf <- function(.df ,.lat, .lon, .drop=FALSE){
+  check <- nrow(.df)
+  df <- .df %>%
+    filter(!is.na(.data[[.lat]]))%>%    # index to character vector ?!!
+    sf::st_as_sf(coords = c(.lon, .lat), crs=4326, remove = .drop)
+  
+  if(check > nrow(df)) warning(paste0("\nremoved ", check - nrow(df), " flights with NA in lat/lon."))
+  
+  return(df)
+}
+
+#' identify territory based on lat/lon
+geo_sfpts <- function(.sfpts, .shape){
+  pts <- .sfpts %>%
+    sf::st_join(.shape)
+  return(pts)
+}
+
+# ====================== wrap all prep in one function ===================
+
 prep_base_data <- function(.fn = file_names, ...){
+
 ds <- read_osn_covid(.fn)
-ds <- ds %>% append_ad_ctry()
+ds <- ds %>% append_ad_ctry() 
 ds <- ds %>% append_region()
+
+ds_ok  <- ds %>% filter(!is.na(ADEP), !is.na(ADES)) %>% select(ADEP:CALL)
+ds_nok <- ds %>% filter( is.na(ADEP) | is.na(ADES))
+
+
+#----------------------- geo referencing of lat-lon to complement ADEP/ADES
+eez_land <- load_shapefile_for_geo_ref()
+
+ds_nok_adep <- ds_nok %>% filter(is.na(ADEP)) %>% 
+    pts_latlon_sf("LAT1","LON1") %>% 
+    geo_sfpts(eez_land) %>% 
+    mutate(ISO2 = countrycode(ISO_TER1, origin = "iso3c", destination = "iso2c")
+           ,ADEP     = case_when(ALT1 <= 5000 ~ 'XLOX', ALT1 > 5000 ~ 'XHIX', TRUE ~ as.character(NA))
+           ,ADEP_CTRY= case_when( ADEP == "XHIX" ~ "Other"
+                                 ,ADEP == "XLOX" & !is.na(ISO2) ~ ISO2
+                                 ,ADEP == "XLOX" & is.na(ISO2) ~ ADES_CTRY
+                                 ,TRUE ~ as.character(NA))
+           )
+
+ok <- ds_nok_adep %>% filter(!is.na(ADES))  # check there are a few apts with no country
+nok<- ds_nok_adep %>% filter( is.na(ADES)) %>%
+  sf::st_drop_geometry() %>% rename(ISO3_ADEP = ISO_TER1, ISO2_ADEP = ISO2) %>%
+  pts_latlon_sf("LAT2","LON2") %>% 
+  geo_sfpts(eez_land) %>% 
+    mutate(ISO2 = countrycode(ISO_TER1, origin = "iso3c", destination = "iso2c")
+           ,ADES     = case_when(ALT2 <= 5000 ~ 'XLOX', ALT2 > 5000 ~ 'XHIX', TRUE ~ as.character(NA))
+           ,ADES_CTRY= case_when( ADES == "XHIX" ~ "Other"
+                                 ,ADES == "XLOX" & !is.na(ISO2) ~ ISO2
+                                 ,ADES == "XLOX" & is.na(ISO2) ~ ADEP_CTRY
+                                 ,TRUE ~ as.character(NA))
+    )
+
+ok <- ok  %>% sf::st_drop_geometry() %>% select(ADEP:CALL)
+nok<- nok %>% sf::st_drop_geometry() %>% select(ADEP:CALL)
+
+ds_nok_adep <- bind_rows(ok, nok) %>% append_region()
+
+ds_nok_ades <- ds_nok %>% filter(!is.na(ADEP), is.na(ADES)) %>%
+  pts_latlon_sf("LAT2","LON2") %>% 
+  geo_sfpts(eez_land) %>% 
+    mutate(ISO2 = countrycode(ISO_TER1, origin = "iso3c", destination = "iso2c")
+           ,ADES     = case_when(ALT2 <= 5000 ~ 'XLOX', ALT2 > 5000 ~ 'XHIX', TRUE ~ as.character(NA))
+           ,ADES_CTRY= case_when( ADES == "XHIX" ~ "Other"
+                                 ,ADES == "XLOX" & !is.na(ISO2) ~ ISO2
+                                 ,ADES == "XLOX" & is.na(ISO2) ~ ADEP_CTRY
+                                 ,TRUE ~ as.character(NA))
+    ) %>% 
+  sf::st_drop_geometry() %>% select(ADEP:CALL) %>% 
+  append_region()
+
+ds_nok <- bind_rows(ds_nok_adep, ds_nok_ades)   # verify number of flights
+
+#--------- combine again
+ds <- bind_rows(ds_ok, ds_nok)
+
+#-------------------
 
 meta <- extract_meta_osn(ds)
 check_and_write_meta(meta)
@@ -224,11 +320,11 @@ daily_count <- ds %>%
 check_and_write_meta(daily_count, "./data/daily_osn.csv")
 #----------------------------------------------------------------
 
-ds <- ds %>% drop_na()  # drop all ~ assumed to be clean
+#ds <- ds %>% drop_na()  # drop all ~ assumed to be clean
 
 # write out base data
 my_fn <- gsub(pattern = "-raw", replacement = "", x = .fn)
-my_fn <- gsub(pattern = "flightlist_", replacement = "base_osn_", x = my_fn)
+my_fn <- gsub(pattern = "flightlist_", replacement = "base_osn_2_", x = my_fn)
 my_fn <- gsub(pattern = "\\.gz", replacement = "", x = my_fn)
 write_csv(ds, file = my_fn)
 message(paste0("run completed for ", my_fn))
@@ -245,6 +341,7 @@ fns <- list_apt_files()
 
 # crunch study data
 walk(fns, .f = prep_base_data)
+walk(fns[13:length(fns)], .f = prep_base_data)
 ```
 
 # Todo's, observations, etc.
@@ -408,21 +505,24 @@ tmp <- us %>%
   filter(DATE >= lubridate::ymd("2019-10-01"))
 
 ###---------Rainer, the "new_scale_colour()" kinda resets the scale, and you can use another one for the next geom_lines. In the example below, I left the legend.position = "bottom" (instead of "NULL"), just to see the colors------###
-tmp %>%
+Glass <- rgb(0, 0, 0, max = 255, alpha = 0, names = "transparent")
+
+ResilienceMovingBands <- tmp %>%
   ggplot() +
   geom_line(aes(x = DATE, y = N), colour = "grey80") +
   geom_line(aes(x = DATE, y = N_sm, colour = THRES2, group = "RQ"), size = 2) +
   geom_line(aes(x = DATE, y = UP_THR), color = "blue") +
   geom_line(aes(x = DATE, y = LOW_THR), color = "red") +
-  geom_line(aes(x = DATE, y = MED), color = "green") +
-  scale_color_brewer(type = "seq") +
+  #geom_line(aes(x = DATE, y = MED), color = "forestgreen", size = 2) +
+  #scale_color_brewer(type = "qual") +
   new_scale_colour() +
-  geom_line(aes(x = DATE, y = BAND, group= "1"), colour = if_else(tmp$LOW_CRIT, "red","green"), size = 10) +
-  geom_line(aes(x = DATE, y = BAND-500, group= "1"), colour = if_else(tmp$UP_CRIT, "red","green"), size = 4) +
-  geom_line(aes(x = DATE, y = BAND-1500, group= "1", colour = STATE), size = 4) +
-  scale_colour_brewer(type = "qual") +
+  geom_line(aes(x = DATE, y = BAND-100, group= "1"), colour = if_else(tmp$LOW_CRIT, "red",Glass), size = 4) +
+  geom_line(aes(x = DATE, y = BAND+16000, group= "1"), colour = if_else(tmp$UP_CRIT, "blue", Glass), size = 4) +
+  geom_line(aes(x = DATE, y = BAND-4000, group= "1", colour = STATE), size = 10) +
+  scale_colour_manual(values = c("darkred", Glass, "darkblue")) +
   theme_minimal() +
   theme(legend.position = "bottom")
+ResilienceMovingBands
 ```
 
 
@@ -468,6 +568,8 @@ sbgr %>% apt_timeline() %>% plot_timeline()
 ```
 
 ```{r}
+sbgr_tl <- sbgr %>% apt_timeline()
+
 sbgr_tl %>%
   ggplot() +
   geom_point(aes(x = DATE, y = DEP_DOM / N_DEP)) +
