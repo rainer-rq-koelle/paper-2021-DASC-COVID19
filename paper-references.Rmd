@@ -1,0 +1,46 @@
+---
+title: "Assessing the Global COVID19 Impact on Air Transport with Open Data"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+# failed to render and I could not finally track what kills the pdf
+ bookdown::pdf_book:
+   base_format: rticles::ieee_article
+  # bookdown::word_document2:
+  # #   reference_docx: tmpl_Conference-template-letter.docx
+  #   default
+bibliography: "DASC2021.bib"
+---
+
+This helper document serves exclusively to get out the references from Zotero and in a paste and copy formatting.
+
+EUROCONTROL [@statfor_growth_2018], for example,
+
+Reported number of cases (22. Jan 2020 through 27. May 2021) [@krispin_coronavirus_2021] based on data from John Hopkins University [@JHU_2020]
+
+global daily flight data set [@xavier_olive_2021_4893103].
+
+RStudio [@rstudio] tools for the R language [@R]
+
+15 minutes or more [@strohmeier_crowdsourced_2021].
+
+PRR 2020 [@prr_2020]
+
+who declaring covid [@who_covid_2020]
+
+BBC 2020 [@bbc_coronavirus_2020]
+
+ABC 2020 australia [@worthington_covid_aus_2020]
+
+France24 corona-americas [@france24_coronavirus_2020]
+
+ICAO [@icao_covid_impact_2021]
+
+resilience [@resilience_engineering_2009]
+
+glu [@gluchshenko_2012]
+
+D1.3 [@gluchshenko_d1_res2050_2013]
+
+koelle [@koelle_resilience_2015]
+
+REFERENCES ============================
