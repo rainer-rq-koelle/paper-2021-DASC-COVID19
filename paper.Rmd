@@ -3,9 +3,11 @@ title: "Assessing the Global COVID19 Impact on Air Transport with Open Data"
 date: "`r format(Sys.Date(), '%d %B %Y')`"
 output:
 # failed to render and I could not finally track what kills the pdf
-#  bookdown::pdf_book:
-#    base_format: rticles::ieee_article
-  bookdown::word_document2
+ # bookdown::pdf_book:
+ #   base_format: rticles::ieee_article
+  bookdown::word_document2:
+  #   reference_docx: tmpl_Conference-template-letter.docx
+    default
 bibliography: "DASC2021.bib"
 affiliation:
   ## use one only of the following
