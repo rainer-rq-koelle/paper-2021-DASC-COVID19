@@ -41,6 +41,10 @@ glu [@gluchshenko_2012]
 
 D1.3 [@gluchshenko_d1_res2050_2013]
 
-koelle [@koelle_resilience_2015]
+koelle [@koelle_resilience_2015]\\
+
+rstudio [@rstudioteam2021]
+
+git []
 
 REFERENCES ============================
