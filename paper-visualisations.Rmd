@@ -1,0 +1,438 @@
+---
+title: "Untitled"
+author: "PRU"
+date: "23/07/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(lubridate)
+library(roll)
+```
+
+Final push analysis
+
+- data geo-referenced to increase hits --> base_osn_2_
+
+```{r, message=FALSE}
+## load study data - as long as not outsourced to data prep
+fns <- list.files(path = "./data/", pattern = "base_osn_2_", full.names = TRUE )
+col_spec <- cols(
+  ADEP = col_character(),
+  ADEP_CTRY = col_character(),
+  ADEP_REG = col_character(),
+  ADES = col_character(),
+  ADES_CTRY = col_character(),
+  ADES_REG = col_character(),
+  TYPE = col_character(),
+  DATE = col_date(format = ""),
+  CALL = col_character()
+)
+ds  <- fns %>% map_dfr(.f = ~ read_csv(.x))
+```
+
+load aircraft data base
+```{r}
+ac_db <- read_csv("./data-raw/aircraftDatabase.csv"
+                  ,col_types = cols(.default = "c"))
+
+#ac_types <- read_csv("./data-raw/doc8643AircraftTypes.csv")
+
+ds <- ds %>% left_join(ac_db %>% select(icao24, registration, typecode, icaoaircrafttype), by = c("ICAO24"="icao24"))
+
+```
+
+
+## getting the meta data table
+
+```{r}
+daily_tfc <- read_csv("./data/daily_osn.csv", col_types = cols()) %>%
+  #--------- correct for double counts in January 2019
+  group_by(DATE) %>%
+  mutate(COUNT = row_number()) %>%
+  filter(COUNT == 1)
+
+monthly_tfc <- daily_tfc %>% mutate(MOF = lubridate::floor_date(DATE, unit = "month")) %>%
+  group_by(MOF) %>% summarise(N = n(), FLTS = sum(FLTS))
+
+dwnlds <- 
+
+table_1 <- data.frame(
+   FNS  = fns
+  ,SIZE = file.info(fns)$size     # this is the size of our base_osn files - redo!
+  ,FLTS = monthly_tfc$FLTS 
+  ,YEAR = c(rep(2019, 12), rep(2020, 12), rep(2021, 6))
+  )
+
+paper_tbl <- table_1 %>%
+  group_by(YEAR) %>%
+  summarise(SIZE = sum(SIZE), FLTS = sum(FLTS))
+```
+
+
+##
+
+```{r}
+# summarise regional level
+## -------- percentile thresholds
+pcts   <- c(0.8, 0.6, 0.3, 0.1)
+
+## -------- function definition
+regional_timeline <- function(.ds, .reg, .pcts=pcts){
+us <- .ds %>% 
+  filter(ADEP_REG == .reg | ADES_REG == .reg) %>%
+  group_by(YR = year(DATE), DATE) %>% 
+  summarize(N = n(), .groups = "drop") 
+
+# static thresholds, x-th percentile rounded to lower integer
+us_ref <- us %>% filter(YR == 2019) %>%
+  pull(N) %>% quantile(probs = .pcts) %>% floor()
+
+us_ref2 <- us %>% filter(YR == 2019, DATE >= lubridate::ymd("2019-07-01")) %>%
+  pull(N) %>% quantile(probs = .pcts) %>% floor()
+
+# use % of base level
+base <- us_ref2[1]    # 80th percentile
+cut_lvls <- base * c(1, 0.8, 0.6, 0.4, 0.2)
+cut_lvls <- floor(cut_lvls)
+
+max_N <- max(us$N)
+lvls  <- c("Nom", "Base", "-20%", "-40%", "-60%","-80","low")
+us <- us %>% 
+  mutate( #THRES  = cut(N, breaks = c(max_N, us_ref, 0),  labels = lvls)
+         #,
+         THRES2 = cut(N, breaks = c(max_N, cut_lvls, 0)
+                      #, labels = lvls
+                      ,dig.lab=12    # to force full numbers
+                      )
+         )
+return(list(us, us_ref, us_ref2, cut_lvls))
+}
+
+## do for us
+res <- regional_timeline(ds, "US")
+us  <- res[[1]]
+us_ref2 <- res[[3]]
+cut_lvls <- res[[4]]
+```
+
+```{r fig-us-timeline, fig.cap="(ref:fig-us-timeline)"}
+plot_timeline <- function(.df, .pct_ref){
+ p <- .df %>%
+  ggplot(aes(x = DATE)) +
+  geom_hline(yintercept = .pct_ref, linetype = "dotdash") +
+  geom_point(aes(y = N, color = THRES2), alpha = 0.3) +
+  geom_line( aes(y = N, colour = THRES2, group = 1)) +
+  theme_minimal()
+ return(p)
+}
+
+ gg <- plot_timeline(us, cut_lvls) 
+ 
+ gg 
+ #+
+#   coord_cartesian(ylim=c(0, 7))
+```
+```{r}
+us_rq <- ds %>% filter(ADEP_REG == "US" | ADES_REG == "US")
+us_rq %>% summarise( N = n()
+                    , NOT_P = sum(!icaoaircrafttype %in% c("L1P","L2P"))
+                    , NOT_PH= sum(!icaoaircrafttype %in% c("L1P","L2P","H1P", "H1T","H2T"))
+)
+
+
+us_rq <- us_rq %>% filter(!icaoaircrafttype %in% c("L1P","L2P","H1P", "H1T","H2T"))                                  
+```
+
+```{r}
+res <- regional_timeline(us_rq, "US")
+us  <- res[[1]]
+cut_lvls <- res[[4]]
+
+lbl_df <- data.frame(DATE = lubridate::ymd("2019-07-1")
+                     ,LVLS= cut_lvls) %>%
+  mutate(LBL = paste0(c("base", "-20%","-40%","-60%","-80%")," (", LVLS, ")")  )
+
+gg <- plot_timeline( us %>% filter(DATE >= lubridate::ymd("2019-07-01"))
+                    ,cut_lvls) 
+gg +
+  geom_text(lbl_df, mapping = aes(x = DATE, y = LVLS, label = LBL)
+            , nudge_y = 1500, nudge_x = 30) +
+  labs(x = NULL, y = NULL) +
+  theme(legend.position = "none")
+```
+
+```{r}
+ggsave("./figures/us-resilience-timeline.png", dpi = 320, height = 6, width = 8)
+```
+
+```{r}
+check_offset  <- function(.tfc, .ref){
+  df <- .tfc %>% 
+    mutate(DIFF = N - .ref
+           ,CUM_DIFF = if_else(DIFF >= 0, 0, DIFF)
+           ,MOF = lubridate::floor_date(DATE, unit = "month"))
+  return(df)
+}
+resilience_dt <- function(.tfc, .ref){
+  df <- .tfc %>%
+    check_offset(.ref) %>%
+    group_by(MOF) %>%
+    summarise( N_DISR = sum(DIFF < 0)
+              ,FIRST  = DATE[which(DIFF < 0)[1]]
+              ,CUM_DIFF = sum(CUM_DIFF))
+  return(df)
+}
+```
+
+```{r}
+resi_us <- resilience_dt (
+   us %>% filter(DATE >= lubridate::ymd("2019-07-01"))
+  ,cut_lvls[2] 
+)
+resi
+```
+
+```{r}
+bra <- ds %>% filter(ADEP_REG == "BR" | ADES_REG == "BR") %>%
+  filter(!icaoaircrafttype %in% c("L1P","L2P","H1P", "H1T","H2T"))  
+
+plot_me <- function(.tfc, .reg, .nudge_y){
+res <- regional_timeline(.tfc, .reg)
+us  <- res[[1]]
+cut_lvls <- res[[4]]
+
+lbl_df <- data.frame(DATE = lubridate::ymd("2019-07-1")
+                     ,LVLS= cut_lvls) %>%
+  mutate(LBL = paste0(c("base", "-20%","-40%","-60%","-80%")," (", LVLS, ")")  )
+
+gg_bra <- plot_timeline( us %>% filter(DATE >= lubridate::ymd("2019-07-01"))
+                    ,cut_lvls) 
+gg_bra <- gg_bra +
+  geom_text(lbl_df, mapping = aes(x = DATE, y = LVLS, label = LBL)
+            , nudge_y = .nudge_y, nudge_x = 30) +
+  labs(x = NULL, y = NULL) +
+  theme(legend.position = "none")
+return(gg_bra)
+}
+```
+
+```{r}
+( g_bra <- plot_me(bra, "BR", 75) )
+# ggsave("./figures/bra-resilience-timeline.png", dpi = 320, height = 6, width = 8)
+```
+
+```{r}
+eur <- ds %>% filter(ADEP_REG == "EU" | ADES_REG == "EU") %>%
+  filter(!icaoaircrafttype %in% c("L1P","L2P","H1P", "H1T","H2T")) 
+
+( g_eur <- plot_me(eur, "EU", 1000) )
+# ggsave("./figures/eur-resilience-timeline.png", dpi = 320, height = 6, width = 8)
+```
+
+```{r, message=FALSE}
+library(patchwork)
+g_eur + g_bra
+```
+
+```{r}
+resi_us <- resi
+
+bra_res <- regional_timeline(bra, "BR")
+resi_bra <- resilience_dt(bra_res[[1]], bra_res[[4]][2]) %>%
+  filter(MOF >= lubridate::ymd("2019-07-01"))
+
+eur_res <- regional_timeline(eur, "EU")
+resi_eur <- resilience_dt(eur_res[[1]], eur_res[[4]][2]) %>%
+  filter(MOF >= lubridate::ymd("2019-07-01"))
+```
+
+show this in the presentation
+
+```{r}
+aggregate_resilience <- function(.ds){
+  my_agg <- .ds %>% 
+    mutate(YR = lubridate::year(MOF)) %>% 
+    filter(YR %in% c(2020, 2021)) %>% 
+    group_by(YR) %>% 
+    summarise(N_DISR = sum(N_DISR), sum(CUM_DIFF))
+}
+
+us_res <- aggregate_resilience(resi_us) %>% mutate(REG = "US")
+eur_res<- aggregate_resilience(resi_eur) %>% mutate(REG= "EU")
+bra_res<- aggregate_resilience(resi_bra) %>% mutate(REG= "BR")
+
+res_all <- bind_rows(us_res, eur_res, bra_res)
+res_all %>% select(REG, everything())
+```
+
+
+## Airport level analysis
+
+```{r}
+apt_timeline <- function(.df){
+  df <- .df %>% group_by(DATE) %>%
+    summarise(N_DEP = n()
+              ,DEP_DOM = sum(ADEP_CTRY == ADES_CTRY)
+              ,DEP_REG = sum(ADEP_REG == ADES_REG))
+}
+
+plot_timeline <- function(.df){
+  df <- .df %>% 
+  mutate(N_DEP_SM = roll_quantile(N_DEP, width = 7, p = .50))
+
+  p <- df %>%  
+  ggplot() +
+  geom_line(aes(x = DATE, y = N_DEP), colour = "grey60") +
+  geom_line(aes(x = DATE, y = N_DEP_SM)) +
+  scale_x_date( limits = c(as.Date("2020-01-01"), as.Date("2021-06-01"))
+               ,date_breaks = "60 days", date_labels = "%b\n%y") +
+  labs(x = NULL, y = NULL) +
+  theme_minimal()
+  
+  return(p)
+}
+
+dep_vs_domshare <- function(.df){
+  p <- .df %>%
+  ggplot() +
+  geom_point(aes(y = N_DEP, x = DEP_REG / N_DEP, colour = as.factor(year(DATE)))) +
+  labs(colour = NULL, x = NULL, y = NULL
+       ,subtitle = "share regional departures") + 
+  scale_x_continuous(labels = scales::percent_format(accuracy = 1)
+                     ,expand = c(0,0), limits = c(0,NA)) +
+  theme_minimal() +
+  theme(legend.position = c(0.1, 0.8))
+return(p)
+}
+
+check_apt <- function(.mvts, .apt){
+  apt_mvts <- .mvts %>%
+    filter(ADEP == .apt) %>% 
+    apt_timeline() %>%
+    filter(N_DEP > 10)   # remove outlier
+  
+  p1 <- apt_mvts  %>% plot_timeline()
+  p2 <- apt_mvts %>% dep_vs_domshare()
+  
+  p <- (p1 + labs(subtitle = .apt)) + p2
+return(p)
+}
+```
+
+```{r, message=FALSE}
+apt  <- "EGLL"
+mvts <- ds %>% filter(ADEP == apt) 
+check_apt(mvts, apt)
+ggsave(paste0("./figures/", apt, "-combi.png"), dpi = 320, height = 4, width = 8)
+```
+
+ggsave("./figures/egll-combi.png", dpi = 320, height = 4, width = 8)
+
+```{r, message=FALSE}
+apt  <- "KATL"
+mvts <- ds %>% filter(ADEP == apt) 
+check_apt(mvts, apt)
+ggsave(paste0("./figures/", apt, "-combi.png"), dpi = 320, height = 4, width = 8)
+```
+
+
+```{r, message=FALSE}
+apt  <- "SBGR"
+mvts <- ds %>% filter(ADEP == apt) 
+check_apt(mvts, apt)
+ggsave(paste0("./figures/", apt, "-combi.png"), dpi = 320, height = 4, width = 8)
+```
+
+
+## COVID vs national level
+
+```{r}
+coronavirus::update_dataset()  # pulls latest (data)version
+library(coronavirus)           # then call library
+
+covid <- coronavirus %>% as_tibble()
+```
+
+```{r}
+ctry <- "BR"
+
+deps <- bra %>% filter(ADEP_CTRY == ctry)
+deps <- deps %>% group_by(DATE, ADEP_REG, ADES_REG) %>% summarise(N_DEP = n())
+```
+
+```{r}
+deps %>% ggplot() + geom_line(aes(x = DATE, y = N_DEP, group = ADES_REG, colour = ADES_REG))
+ covs <- covid %>% filter(country == "Brazil") %>% filter(type == "death") %>% mutate(cum_cases = cumsum(cases)) %>% ggplot() + geom_line(aes(x = date, y = cum_cases))
+```
+
+```{r}
+deps_covs <- deps %>% 
+  left_join( covid %>% filter(country == "Brazil", type == "death") %>% 
+              mutate(cum_cases = cumsum(cases)) %>% 
+               select(DATE = date, CUM_DEATH = cum_cases)
+             , by = "DATE"
+             )
+```
+
+```{r}
+coeff <- 500
+
+ggplot(data = deps_covs %>% filter(DATE >= lubridate::ymd("2020-01-01"))
+       , aes(x = DATE)) +
+  geom_line(aes( y = N_DEP, colour = ADES_REG)) +
+  geom_line(aes( y = CUM_DEATH / coeff)) +
+ scale_y_continuous(
+#  scale_y_log10(
+    # Features of the first axis
+    name = "departures",
+    
+    # Add a second axis and specify its features
+    sec.axis = sec_axis( trans= ~ .*coeff, name="confirmed deaths", labels = scales::comma)
+  ) +
+  geom_vline(xintercept = lubridate::ymd("2020-03-15"), linetype = "dotdash") +
+  labs(x = NULL, colour = NULL) +
+  theme_minimal() +
+  theme(legend.position = c(0.4,0.7))
+```
+
+ggsave("./figures/bra-dep-death.png", dpi = 320, width = 8, height = 5)
+
+
+```{r}
+deps <- eur %>% filter(ADEP_CTRY == "DE") %>% 
+  group_by(DATE, ADEP_REG, ADES_REG) %>% summarise(N_DEP = n(), .groups = "drop")
+
+deps_covs <- deps %>% 
+  left_join( covid %>% filter(country == "Germany", type == "death") %>% 
+              mutate(cum_cases = cumsum(cases)) %>% 
+               select(DATE = date, CUM = cum_cases)
+             , by = "DATE"
+             )
+```
+
+```{r}
+coeff <- 35
+
+ggplot(data = deps_covs %>% filter(DATE >= lubridate::ymd("2020-01-01"))
+       , aes(x = DATE)) +
+  geom_line(aes( y = N_DEP, colour = ADES_REG)) +
+  geom_line(aes( y = CUM / coeff)) +
+ scale_y_continuous(
+#  scale_y_log10(
+    # Features of the first axis
+    name = "departures",
+    
+    # Add a second axis and specify its features
+    sec.axis = sec_axis( trans= ~ .*coeff, name="confirmed deaths", labels = scales::comma)
+  ) +
+  geom_vline(xintercept = lubridate::ymd("2020-03-15"), linetype = "dotdash") +
+  labs(x = NULL, colour = NULL) +
+  theme_minimal() +
+  theme(legend.position = c(0.3,0.8))
+```
+
+ggsave("./figure/ger-dep-death.png", dpi = 320, width = 8, height = 5)

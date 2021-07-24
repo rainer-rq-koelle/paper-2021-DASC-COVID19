@@ -3,6 +3,9 @@
 .RData
 .Ruserdata
 
+paper-references.pdf
+
+
 # Fabio's stuff
 data-raw
 # ignore massive files of base data in ./data
